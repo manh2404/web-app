@@ -35,6 +35,7 @@ export function NavMain({
               <SidebarMenuButton asChild tooltip={t(item.title)}>
                 <Link href={item.url}>
                   <DynamicIcon name={item.icon} />
+                  {item.icon && <item.icon />}
                   <span>{t(item.title)}</span>
                 </Link>
               </SidebarMenuButton>

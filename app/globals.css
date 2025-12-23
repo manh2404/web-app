@@ -145,3 +145,53 @@
 html, body {
     touch-action: pan-y; /* ngăn pinch zoom; cho phép vertical pan */
 }
+/* --- CUSTOM SCROLLBAR --- */
+@layer utilities {
+    /* Class để ẩn thanh cuộn nhưng vẫn cuộn được (nếu cần) */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    /* Class tạo thanh cuộn đẹp */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;  /* Độ rộng thanh dọc */
+        height: 6px; /* Độ cao thanh ngang */
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent; /* Nền trong suốt */
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #3f3f46; /* Màu thanh cuộn (Zinc-700) */
+        border-radius: 10px; /* Bo tròn */
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #52525b; /* Màu khi di chuột vào (sáng hơn chút) */
+    }
+}
+
+/* Hiệu ứng loading trượt màu đỏ */
+@keyframes sliding-red-bar {
+    0% {
+        left: -25%;
+        width: 25%;
+    }
+    50% {
+        width: 50%;
+    }
+    100% {
+        left: 100%;
+        width: 25%;
+    }
+}
+
+.animate-sliding-red {
+    animation: sliding-red-bar 1.5s infinite ease-in-out;
+    background: linear-gradient(to right, transparent, #dc2626, transparent); /* Màu đỏ red-600 */
+}

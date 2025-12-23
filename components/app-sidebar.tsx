@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Command } from 'lucide-react';
+// Import thêm icon LifeBuoy (Hỗ trợ) và Send (Phản hồi)
+import { Command, FolderKanban, SquareKanban, Briefcase, Rocket, LifeBuoy, Send } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
 import { NavSecondary } from '@/components/nav-secondary';
@@ -17,19 +18,53 @@ import {
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { useAppContext } from '@/context/app-context';
-import {IUser} from "@/models/user.model";
-import {IMenuSideBar} from "@/models/menu-sidebar.model";
-import {useTranslation} from "react-i18next";
+import { IUser } from "@/models/user.model";
+import { IMenuSideBar } from "@/models/menu-sidebar.model";
+import { useTranslation } from "react-i18next";
 
-// Định nghĩa các prop của AppSidebar
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  user: IUser; // Thông tin người dùng
+  user: IUser;
   data: IMenuSideBar
 }
 
 export function AppSidebar({ ...props }: AppSidebarProps) {
   const { config } = useAppContext()
-  const {t} = useTranslation();
+  const { t } = useTranslation();
+
+  // --- PHẦN 1: MENU DỰ ÁN (CẬU ĐÃ LÀM) ---
+  const projectMenu = {
+    title: "Dự Án",
+    url: "/control/projects",
+    icon: SquareKanban,
+    isActive: false,
+    items: [
+      {
+        title: "Tạo project",
+        url: "/control/projects/create",
+      },
+      {
+        title: "WorkItem",
+        url: "/control/projects/workitem",
+      },
+    ],
+  };
+
+  // Support & Feedback
+  const supportMenu = [
+    {
+      title: "Hỗ trợ",
+      url: "/control/support",
+      icon: LifeBuoy,
+    },
+    {
+      title: "Phản hồi",
+      url: "/control/feedback",
+      icon: Send,
+    },
+  ];
+
+  // --- PHẦN 3: GỘP MENU ---
+  const mergedNavMain = [...(props.data.navMain || []), projectMenu];
 
   return (
     <Sidebar className="top-(--header-height) h-[calc(100svh-var(--header-height))]!" {...props}>
@@ -50,11 +85,15 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
       <SidebarContent>
-        <NavMain items={props.data.navMain} />
-        {/*<NavProjects projects={data.projects} />*/}
-        <NavSecondary items={props.data.navSecondary} className="mt-auto" />
+        <NavMain items={mergedNavMain} />
+
+        {/* --- PHẦN 4: DÙNG MENU HỖ TRỢ MỚI TẠO --- */}
+        {/* Thay vì dùng props.data.navSecondary, ta dùng biến supportMenu vừa tạo */}
+        <NavSecondary items={supportMenu} className="mt-auto" />
       </SidebarContent>
+
       <SidebarFooter>
         <NavUser user={props.user} />
       </SidebarFooter>
