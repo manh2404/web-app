@@ -279,3 +279,26 @@ div[class*="rounded-xl border bg-card"] {
 .dark [data-sidebar="menu-button"][data-active="true"] {
     background-color: rgba(0, 0, 0, 0.4) !important;
 }
+
+/* Tùy chỉnh thanh cuộn cho toàn bộ trình duyệt hoặc các vùng có scroll */
+@layer base {
+    ::-webkit-scrollbar {
+        width: 6px; /* Độ rộng thanh cuộn mảnh hơn */
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent; /* Nền thanh cuộn trong suốt */
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1); /* Màu thanh trượt trắng mờ */
+        border-radius: 10px; /* Bo tròn đầu thanh trượt */
+        backdrop-filter: blur(4px); /* Hiệu ứng kính mờ cho thanh trượt */
+        border: 1px solid rgba(255, 255, 255, 0.05); /* Viền cực mảnh */
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2); /* Sáng hơn một chút khi di chuột vào */
+    }
+}
