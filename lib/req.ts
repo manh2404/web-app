@@ -1,9 +1,7 @@
 import axios from 'axios';
 
 export async function POST_METHOD(url: string, body: unknown, token?: string) {
-	let urlReal: string = url;
-	if (!url.includes("https://")) urlReal = `${process.env.API_APP}${urlReal}`;
-	const {data} = await axios.post(urlReal, body, {
+	const {data} = await axios.post(url, body, {
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: token ? `Bearer ${token}` : undefined,
