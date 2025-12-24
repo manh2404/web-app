@@ -155,7 +155,7 @@ export function ChartAreaInteractive() {
 
   return (
     // 👇 THAY ĐỔI 1: Card nền trong suốt, mờ ảo (Glassmorphism)
-    <Card className="pt-0 bg-black/40 backdrop-blur-xl border-white/20 shadow-xl">
+    <Card className="pt-0 bg-black/10 backdrop-blur-xl border-white/20 shadow-xl">
       <CardHeader className="flex items-center gap-2 space-y-0 border-b border-white/10 py-5 sm:flex-row">
         <div className="grid flex-1 gap-1">
           <CardTitle className="text-white">Area Chart - Interactive</CardTitle>
@@ -171,7 +171,9 @@ export function ChartAreaInteractive() {
           >
             <SelectValue placeholder="Last 3 months" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl bg-black/90 border-white/20 backdrop-blur-xl text-white">
+          <SelectContent
+            className="rounded-xl bg-black/30 border-white/20 backdrop-blur-xl text-white shadow-2xl"
+          >
             <SelectItem value="90d" className="rounded-lg focus:bg-white/20 focus:text-white cursor-pointer">
               Last 3 months
             </SelectItem>
