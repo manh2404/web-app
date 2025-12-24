@@ -1,28 +1,25 @@
-import { NextResponse } from 'next/server';
+import '@/models/role.model';
+import { cookies } from 'next/headers';
 import { Login } from '@/lib/services/auth.service';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const token = await Login(body);
-
-    const res = NextResponse.json({ success: true });
-
-    res.cookies.set({
-      name: 'accessToken',
-      value: token,
+    const cc = await cookies();
+    cc.set('accessToken', token, {
       httpOnly: true,
-      secure: process.env.NEXT_PUBLIC_BASE_URL === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
+      sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 30,
     });
-
-    return res;
+    return new Response(null, {
+      status: 200,
+    });
   } catch (error: any) {
-    return NextResponse.json(
-        { message: error.message || 'Login failed' },
-        { status: 401 }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 401,
+    });
   }
 }
