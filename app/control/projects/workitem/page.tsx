@@ -28,7 +28,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
 
 // --- 1. DỮ LIỆU & CONFIG ---
 
@@ -80,7 +79,7 @@ const initializeBoard = (tasks: Task[]) => {
   return columns;
 };
 
-// --- 2. COMPONENT: TASK CARD ---
+// --- 2. COMPONENT: TASK CARD (Đã chỉnh Glassmorphism) ---
 const TaskCard = ({ task, index, onClick, isSelected }: { task: Task; index: number, onClick: () => void, isSelected: boolean }) => {
   return (
     <Draggable draggableId={task.id} index={index}>
@@ -90,62 +89,72 @@ const TaskCard = ({ task, index, onClick, isSelected }: { task: Task; index: num
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={onClick}
-
-          className="mb-2"
+          className="mb-1.5" // Giảm khoảng cách giữa các thẻ
         >
           <Card
             className={cn(
-              "cursor-pointer bg-[#1e1e1e] border-border/50 hover:border-primary/50 transition-all group relative rounded-lg shadow-sm box-border",
-              snapshot.isDragging && "border-primary shadow-xl rotate-2 z-50 ring-1 ring-primary",
-              isSelected && "border-blue-500 ring-1 ring-blue-500 bg-blue-500/5"
+              // Base Style: Tối ưu bo góc và độ trong suốt
+              "cursor-pointer transition-all duration-200 group relative rounded-lg box-border",
+              "bg-zinc-900/40 backdrop-blur-sm border-white/10 hover:bg-zinc-800/60 hover:border-white/20",
+              "shadow-sm",
+
+              // Styles khi đang kéo thả: Bỏ hiệu ứng bay xa/xoay mạnh
+              snapshot.isDragging && "bg-indigo-950/90 border-indigo-500/50 shadow-xl z-50 ring-1 ring-indigo-500/30 scale-[1.02]",
+
+              // Styles khi được chọn
+              isSelected && "bg-blue-500/10 border-blue-500/50 ring-1 ring-blue-500/20"
             )}
           >
-            {/* FIX: Giảm padding tổng thể từ p-3 xuống p-2 */}
-            <CardContent className="p-2">
-              {/* Dòng 1: ID & Menu */}
-              <div className="flex justify-between items-start mb-0.5">
-                <span className="text-[9px] font-bold text-muted-foreground/70 hover:text-primary transition-colors">
+            {/* GIẢM CHIỀU CAO: Thay p-3 bằng py-1.5 px-2.5 */}
+            <CardContent className="py-0.5 px-3">
+              {/* Header: ID & Menu - Tối ưu cực nhỏ */}
+              <div className="flex justify-between items-center mb-0.5">
+                <span className={cn(
+                  "text-[9px] font-bold tracking-tight opacity-70",
+                  isSelected ? "text-blue-400" : "text-muted-foreground group-hover:text-foreground"
+                )}>
                   {task.taskId}
                 </span>
-                <Button variant="ghost" size="icon" className="h-3.5 w-3.5 -mr-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="h-4 w-4 -mr-1 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-all">
                   <MoreHorizontal className="h-3 w-3" />
                 </Button>
               </div>
 
-              {/* Dòng 2: Title - FIX: leading-none (ép dòng chặt), mb-1 (giảm khoảng cách dưới) */}
-              <div className="text-sm font-medium text-foreground leading-none mb-1 line-clamp-2">
+              {/* Title: Tối ưu chiều cao dòng (leading-tight) và cỡ chữ */}
+              <div className="text-[12.5px] font-medium text-white/90 leading-tight mb-1.5 line-clamp-1 group-hover:text-white">
                 {task.title}
               </div>
 
-              {/* Dòng 3: Metadata - FIX: mt-1 (giảm khoảng cách trên), gap-1 (giảm khoảng cách giữa các icon) */}
-              <div className="flex items-center justify-between mt-1">
-                <div className="flex items-center gap-1 flex-wrap">
-                  {/* Icon Status */}
-                  <div className="flex items-center justify-center h-5 w-5 rounded bg-muted/30 border border-muted-foreground/20">
+              {/* Footer: Căn chỉnh lại icon và avatar nhỏ hơn */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  {/* Status Tag nhỏ hơn */}
+                  <div className="flex items-center justify-center h-4 w-4 rounded bg-white/5 border border-white/5">
                     {(() => {
                       const Icon = columnsConfig[task.status].icon;
                       const color = columnsConfig[task.status].color;
-                      return <Icon className={cn("h-3 w-3", color)} />;
+                      return <Icon className={cn("h-2.5 w-2.5", color)} />;
                     })()}
                   </div>
-                  {/* Icon Priority */}
-                  <div className="flex items-center justify-center h-5 w-5 rounded bg-muted/30 border border-muted-foreground/20">
+
+                  {/* Priority Tag nhỏ hơn */}
+                  <div className="flex items-center justify-center h-4 w-4 rounded bg-white/5 border border-white/5">
                     <PriorityIcon priority={task.priority} />
                   </div>
                 </div>
 
-                {/* Avatars */}
-                <div className="flex -space-x-1.5">
+                {/* Avatars: Giảm size từ h-5 xuống h-4.5 */}
+                <div className="flex -space-x-1">
                   {task.assignees.length > 0 ? (
                     task.assignees.map((mem, i) => (
-                      <Avatar key={i} className="h-5 w-5 border border-background ring-1 ring-background">
+                      <Avatar key={i} className="h-4.5 w-4.5 border border-zinc-950 ring-0">
                         {mem.avatar && <AvatarImage src={mem.avatar} />}
-                        <AvatarFallback className="text-[8px] bg-primary/20 text-primary font-bold">{mem.name[0]}</AvatarFallback>
+                        <AvatarFallback className="text-[7px] bg-indigo-600 text-white font-bold">{mem.name[0]}</AvatarFallback>
                       </Avatar>
                     ))
                   ) : (
-                    <div className="h-5 w-5 rounded-full bg-muted/30 border border-muted-foreground/20 flex items-center justify-center">
-                      <User className="h-3 w-3 text-muted-foreground/50" />
+                    <div className="h-4.5 w-4.5 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                      <User className="h-2.5 w-2.5 text-white/30" />
                     </div>
                   )}
                 </div>
@@ -158,51 +167,57 @@ const TaskCard = ({ task, index, onClick, isSelected }: { task: Task; index: num
   );
 };
 
-// --- 3. COMPONENT: KANBAN COLUMN ---
+// --- 3. COMPONENT: KANBAN COLUMN (Đã chỉnh Glassmorphism) ---
 const KanbanColumn = ({ columnId, config, tasks, onTaskClick, selectedTaskId }: { columnId: string, config: any, tasks: Task[], onTaskClick: (task: Task) => void, selectedTaskId: string | null }) => {
   return (
-    <div className="flex flex-col h-full w-[320px] min-w-[320px] max-w-[320px] rounded-xl bg-background/50 border border-border/40 shrink-0 box-border">
-      <div className="flex items-center justify-between p-3 shrink-0 border-b border-border/40">
-        <div className="flex items-center gap-2">
-          {config.icon && <config.icon className={cn("h-4 w-4", config.color)} />}
-          <span className="text-sm font-semibold text-foreground">{config.title}</span>
-          <span className="text-xs text-muted-foreground font-mono ml-1">{tasks.length}</span>
+    <div className="flex flex-col h-full w-[300px] min-w-[300px] max-w-[300px] rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 shrink-0 box-border hover:bg-black/30 transition-colors duration-300">
+
+      {/* Column Header */}
+      <div className="flex items-center justify-between p-3.5 shrink-0 border-b border-white/5">
+        <div className="flex items-center gap-2.5">
+          <div className={cn("p-1.5 rounded-md bg-white/5", config.color)}>
+            <config.icon className="h-4 w-4" />
+          </div>
+          <span className="text-sm font-semibold text-white/90">{config.title}</span>
+          <Badge variant="secondary" className="bg-white/10 text-white/70 hover:bg-white/20 border-0 h-5 px-1.5 text-[10px] min-w-[20px] justify-center">
+            {tasks.length}
+          </Badge>
         </div>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:bg-muted">
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/10 rounded-lg">
+          <Plus className="h-4 w-4" />
+        </Button>
       </div>
 
+      {/* Task List */}
       <Droppable droppableId={columnId}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 p-2 overflow-y-auto transition-colors pr-1",
-              "[&::-webkit-scrollbar]:w-1.5",
-              "[&::-webkit-scrollbar-track]:bg-transparent",
-              "[&::-webkit-scrollbar-thumb]:bg-zinc-700",
-              "[&::-webkit-scrollbar-thumb]:rounded-full",
-              "[&::-webkit-scrollbar-thumb]:hover:bg-zinc-600",
-              snapshot.isDraggingOver ? "bg-muted/10" : ""
+              "flex-1 p-2 overflow-y-auto custom-scrollbar transition-colors",
+              snapshot.isDraggingOver ? "bg-white/5" : ""
             )}
           >
-            {tasks.map((task, index) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                index={index}
-                onClick={() => onTaskClick(task)}
-                isSelected={selectedTaskId === task.id}
-              />
-            ))}
-            {provided.placeholder}
-            <Button variant="ghost" className="w-full justify-start text-muted-foreground/70 hover:text-foreground text-xs h-9 mt-1 hover:bg-muted/50">
-              <Plus className="mr-2 h-3 w-3" /> Mục công việc mới
-            </Button>
+            <div className="flex flex-col h-full">
+              {tasks.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  onClick={() => onTaskClick(task)}
+                  isSelected={selectedTaskId === task.id}
+                />
+              ))}
+              {provided.placeholder}
+
+              {/* Nút thêm mới ở cuối cột */}
+              {!snapshot.isDraggingOver && (
+                <Button variant="ghost" className="w-full justify-start text-white/40 hover:text-white/80 text-xs h-9 mt-1 hover:bg-white/5 border border-transparent hover:border-white/10 border-dashed rounded-xl">
+                  <Plus className="mr-2 h-3.5 w-3.5" /> Thêm công việc mới
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </Droppable>
@@ -210,21 +225,21 @@ const KanbanColumn = ({ columnId, config, tasks, onTaskClick, selectedTaskId }: 
   );
 };
 
-// --- 4. COMPONENT: TASK DETAIL PANEL ---
+// --- 4. COMPONENT: TASK DETAIL PANEL (Đã chỉnh Glassmorphism) ---
 const PropertyRow = ({ icon: Icon, label, value, isUser = false }: any) => (
-  <div className="flex items-center h-9 group">
+  <div className="flex items-center py-2 group hover:bg-white/5 rounded-lg px-2 -mx-2 transition-colors">
     <div className="w-[140px] flex items-center text-muted-foreground text-sm">
-      <Icon className="h-4 w-4 mr-2 opacity-70" />
+      <Icon className="h-4 w-4 mr-2.5 opacity-60 group-hover:opacity-100 transition-opacity text-indigo-400" />
       {label}
     </div>
-    <div className="flex-1 flex items-center text-sm">
+    <div className="flex-1 flex items-center text-sm text-white/80">
       {isUser ? (
-        <div className="flex items-center gap-2 hover:bg-muted/50 px-2 py-1 rounded-md cursor-pointer transition-colors -ml-2">
-          <Avatar className="h-5 w-5"><AvatarImage src={value.avatar} /><AvatarFallback>{value.name[0]}</AvatarFallback></Avatar>
+        <div className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md cursor-pointer transition-colors border border-white/5">
+          <Avatar className="h-5 w-5"><AvatarImage src={value.avatar} /><AvatarFallback className="text-[9px] bg-indigo-500 text-white">{value.name[0]}</AvatarFallback></Avatar>
           <span>{value.name}</span>
         </div>
       ) : (
-        <div className="hover:bg-muted/50 px-2 py-1 rounded-md cursor-pointer transition-colors -ml-2 w-full truncate">
+        <div className="w-full truncate">
           {value}
         </div>
       )}
@@ -237,74 +252,69 @@ const TaskDetailPanel = ({ task, onClose }: { task: Task, onClose: () => void })
   const StatusIcon = columnsConfig[task.status].icon;
 
   return (
-    <div className="h-full flex flex-col bg-[#121212] border-l border-border/40 overflow-hidden box-border">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 shrink-0">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1 bg-transparent border-muted-foreground/30 text-muted-foreground">
-            <div className="h-2 w-2 rounded-full bg-blue-500"></div> {task.taskId}
-          </Button>
+    <div className="h-full flex flex-col bg-black/40 backdrop-blur-2xl border-l border-white/10 overflow-hidden box-border shadow-2xl">
+      {/* Header Panel */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 shrink-0">
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="rounded-md border-blue-500/30 bg-blue-500/10 text-blue-400 gap-1.5 py-1 px-2.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse"></div>
+            {task.taskId}
+          </Badge>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><LinkIcon className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Maximize2 className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500" onClick={onClose}><X className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-white hover:bg-white/10 rounded-lg"><LinkIcon className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-white hover:bg-white/10 rounded-lg"><Maximize2 className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-red-400 hover:bg-red-500/10 rounded-lg" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
 
-        {/* ID & Title */}
+        {/* Title */}
         <div className="mb-6">
-          <div className="text-xs font-mono text-muted-foreground mb-2">{task.taskId}</div>
-          <h2 className="text-2xl font-bold leading-tight mb-4">{task.title}</h2>
-          <div className="text-muted-foreground/50 text-sm italic hover:text-muted-foreground hover:bg-muted/20 p-2 -ml-2 rounded-md cursor-pointer transition-colors">
-            Nhấp để thêm mô tả...
+          <h2 className="text-2xl font-bold leading-tight mb-3 text-white drop-shadow-sm">{task.title}</h2>
+          <div className="text-muted-foreground/60 text-sm hover:text-white/80 hover:bg-white/5 p-3 rounded-lg border border-dashed border-white/10 cursor-text transition-all">
+            Thêm mô tả chi tiết cho công việc này...
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="flex gap-2 mb-8">
-          <Button variant="outline" size="sm" className="h-8 text-xs bg-muted/10 border-muted-foreground/20"><Layout className="h-3.5 w-3.5 mr-2" /> Thêm mục con</Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs bg-muted/10 border-muted-foreground/20"><GitBranch className="h-3.5 w-3.5 mr-2" /> Thêm quan hệ</Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs bg-muted/10 border-muted-foreground/20"><Paperclip className="h-3.5 w-3.5 mr-2" /> Đính kèm</Button>
+        <div className="flex gap-2 mb-8 flex-wrap">
+          <Button variant="outline" size="sm" className="h-8 text-xs bg-white/5 border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20 text-muted-foreground"><Layout className="h-3.5 w-3.5 mr-2" /> Mục con</Button>
+          <Button variant="outline" size="sm" className="h-8 text-xs bg-white/5 border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20 text-muted-foreground"><GitBranch className="h-3.5 w-3.5 mr-2" /> Quan hệ</Button>
+          <Button variant="outline" size="sm" className="h-8 text-xs bg-white/5 border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20 text-muted-foreground"><Paperclip className="h-3.5 w-3.5 mr-2" /> Đính kèm</Button>
         </div>
 
-        {/* Properties Section */}
-        <div className="space-y-1 mb-8">
-          <h3 className="text-sm font-semibold mb-3 text-foreground">Thuộc tính</h3>
+        {/* Properties */}
+        <div className="space-y-1 mb-8 bg-white/5 p-4 rounded-xl border border-white/5">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 px-1">Chi tiết</h3>
 
           <PropertyRow
             icon={StatusIcon}
             label="Trạng thái"
-            value={<span className={cn("flex items-center gap-2", columnsConfig[task.status].color)}>{columnsConfig[task.status].title}</span>}
+            value={<span className={cn("flex items-center gap-2 font-medium", columnsConfig[task.status].color)}>{columnsConfig[task.status].title}</span>}
           />
 
           <PropertyRow
             icon={User}
-            label="Người phụ trách"
+            label="Phụ trách"
             isUser
-            value={task.assignees[0] || { name: 'Unassigned', avatar: '' }}
+            value={task.assignees[0] || { name: 'Chưa gán', avatar: '' }}
           />
 
           <PropertyRow
             icon={AlertCircle}
-            label="Ưu tiên"
-            value={<span className="capitalize">{task.priority}</span>}
+            label="Độ ưu tiên"
+            value={<Badge variant="outline" className={cn("capitalize border-0 bg-white/10 text-white/80")}>{task.priority}</Badge>}
           />
 
-          <PropertyRow icon={User} label="Người tạo" isUser value={{name: 'manhb7536', avatar: ''}} />
-          <PropertyRow icon={Calendar} label="Ngày bắt đầu" value="Thêm ngày bắt đầu" />
-          <PropertyRow icon={Calendar} label="Ngày hết hạn" value={task.dueDate} />
-          <PropertyRow icon={Clock} label="Ước tính" value="None" />
-          <PropertyRow icon={Layout} label="Mô-đun" value="Không có mô-đun" />
-          <PropertyRow icon={History} label="Chu kỳ" value="Không có chu kỳ" />
+          <PropertyRow icon={Calendar} label="Hạn chót" value={task.dueDate} />
         </div>
 
-        {/* Footer History Text */}
-        <div className="text-xs text-muted-foreground mt-10 flex items-center gap-1">
-          <History className="h-3 w-3" /> Chỉnh sửa lần cuối bởi manhb7536 about 11 hours ago
+        {/* Footer */}
+        <div className="text-xs text-muted-foreground/50 mt-10 flex items-center gap-1.5 border-t border-white/5 pt-4">
+          <History className="h-3 w-3" /> Cập nhật lần cuối bởi <b>manhb7536</b> khoảng 1 giờ trước
         </div>
       </div>
     </div>
@@ -331,21 +341,27 @@ export default function WorkItemPage() {
   };
 
   return (
-    // 👇 FIX QUAN TRỌNG: h-[calc(100vh-6rem)]
-    // Trừ đi 6rem (khoảng 96px) để chắc chắn nó nằm gọn bên dưới Header của trang web.
-    <div className="flex flex-col h-[calc(100vh-6rem)] w-full bg-background/95 overflow-hidden rounded-lg border border-border/40 box-border">
+    // 👇 CONTAINER CHÍNH: Glassmorphism Base
+    // bg-black/10: Nền tối mờ nhẹ
+    // backdrop-blur-xl: Làm mờ hậu cảnh mạnh
+    <div className="flex flex-col h-[calc(100vh-6rem)] w-full bg-black/10 backdrop-blur-xl overflow-hidden rounded-xl border border-white/10 shadow-2xl box-border">
 
       {/* Header Page */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 shrink-0 h-14 bg-card/50">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 shrink-0 h-16 bg-white/5">
         <div className="flex items-center gap-4">
-          <h1 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <span className="text-primary">Batek</span> / Work Items
-            <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 h-5 font-mono">71</Badge>
+          <h1 className="text-base font-bold text-white flex items-center gap-2">
+            <span className="text-indigo-400">Batek</span> <span className="text-white/30">/</span> Work Items
+            <Badge variant="secondary" className="ml-2 bg-white/10 text-white/70 hover:bg-white/20 border-0 h-5 px-1.5 text-[10px]">Sprint 24</Badge>
           </h1>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" className="h-8 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs px-3 shadow-sm transition-all">
-            <Plus className="h-3 w-3 mr-1.5" /> Thêm công việc
+        <div className="flex items-center gap-3">
+          {/* Search bar giả lập cho đẹp */}
+          <div className="hidden md:flex h-9 w-48 items-center rounded-lg bg-black/20 border border-white/5 px-3 text-sm text-white/50">
+            <span className="text-xs">Filter tasks...</span>
+          </div>
+
+          <Button size="sm" className="h-9 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-4 shadow-lg shadow-indigo-500/20 border border-indigo-500/50">
+            <Plus className="h-3.5 w-3.5 mr-1.5" /> Tạo việc mới
           </Button>
         </div>
       </div>
@@ -355,20 +371,21 @@ export default function WorkItemPage() {
 
         {/* === PHẦN 1: KANBAN BOARD === */}
         <div className={cn(
-          "flex flex-col h-full bg-muted/10 transition-all duration-300 ease-in-out border-r border-transparent box-border",
-          selectedTask ? "w-1/2 border-border/40" : "w-full"
+          "flex flex-col h-full transition-all duration-300 ease-in-out box-border",
+          selectedTask ? "w-1/2 border-r border-white/10" : "w-full"
         )}>
           <div className="flex-1 min-h-0 relative">
             <DragDropContext onDragEnd={onDragEnd}>
               <div className={cn(
-                "absolute inset-0 overflow-x-auto overflow-y-hidden p-4",
+                "absolute inset-0 overflow-x-auto overflow-y-hidden p-5 scroll-smooth",
+                // Scrollbar styling cho vùng ngang
                 "[&::-webkit-scrollbar]:h-2",
                 "[&::-webkit-scrollbar-track]:bg-transparent",
-                "[&::-webkit-scrollbar-thumb]:bg-zinc-700",
+                "[&::-webkit-scrollbar-thumb]:bg-white/10",
                 "[&::-webkit-scrollbar-thumb]:rounded-full",
-                "[&::-webkit-scrollbar-thumb]:hover:bg-zinc-600"
+                "[&::-webkit-scrollbar-thumb]:hover:bg-white/20"
               )}>
-                <div className="flex h-full gap-4 min-w-max">
+                <div className="flex h-full gap-5 min-w-max pb-2">
                   {Object.entries(columnsConfig).map(([colId, config]) => (
                     <KanbanColumn
                       key={colId}
@@ -385,9 +402,9 @@ export default function WorkItemPage() {
           </div>
         </div>
 
-        {/* === PHẦN 2: PANEL CHI TIẾT === */}
+        {/* === PHẦN 2: PANEL CHI TIẾT (Slide Animation) === */}
         {selectedTask && (
-          <div className="w-1/2 h-full flex flex-col overflow-hidden bg-background animate-in slide-in-from-right-10 duration-300 z-10 box-border border-l border-border/40">
+          <div className="w-1/2 h-full flex flex-col overflow-hidden animate-in slide-in-from-right-10 duration-300 z-10 box-border">
             <TaskDetailPanel
               task={selectedTask}
               onClose={() => setSelectedTask(null)}

@@ -21,7 +21,7 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 interface DynamicIconProps extends React.ComponentProps<'svg'> {
-  name?: string | LucideIcon; // Chấp nhận cả string hoặc component (để tránh lỗi TS)
+  icon?: string | LucideIcon; // Chấp nhận cả string hoặc component (để tránh lỗi TS)
 }
 
 const DynamicIcon = ({ name, className, ...props }: DynamicIconProps) => {
