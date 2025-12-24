@@ -137,17 +137,22 @@
     }
 
     body {
-        @apply bg-background text-foreground;
+        /* 👇 ĐÃ SỬA: Bỏ bg-background, thêm Gradient mới */
+        @apply text-foreground;
+
+        background: linear-gradient(90deg, #f05053 0%, #5753c9 100%);
+        min-height: 100vh;
+        font-feature-settings: "rlig" 1, "calt" 1;
     }
 }
 
 /* global.css */
 html, body {
-    touch-action: pan-y; /* ngăn pinch zoom; cho phép vertical pan */
+    touch-action: pan-y;
 }
+
 /* --- CUSTOM SCROLLBAR --- */
 @layer utilities {
-    /* Class để ẩn thanh cuộn nhưng vẫn cuộn được (nếu cần) */
     .no-scrollbar::-webkit-scrollbar {
         display: none;
     }
@@ -156,23 +161,22 @@ html, body {
         scrollbar-width: none;
     }
 
-    /* Class tạo thanh cuộn đẹp */
     .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;  /* Độ rộng thanh dọc */
-        height: 6px; /* Độ cao thanh ngang */
+        width: 6px;
+        height: 6px;
     }
 
     .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent; /* Nền trong suốt */
+        background: transparent;
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #3f3f46; /* Màu thanh cuộn (Zinc-700) */
-        border-radius: 10px; /* Bo tròn */
+        background: #3f3f46;
+        border-radius: 10px;
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #52525b; /* Màu khi di chuột vào (sáng hơn chút) */
+        background: #52525b;
     }
 }
 
@@ -193,5 +197,85 @@ html, body {
 
 .animate-sliding-red {
     animation: sliding-red-bar 1.5s infinite ease-in-out;
-    background: linear-gradient(to right, transparent, #dc2626, transparent); /* Màu đỏ red-600 */
+    background: linear-gradient(to right, transparent, #dc2626, transparent);
+}
+
+div[data-sidebar="inset"],
+main,
+.bg-sidebar {
+    background-color: transparent !important;
+}
+
+/* 2. Tạo hiệu ứng kính mờ cho thanh Sidebar trái */
+div[data-sidebar="sidebar"] {
+    background-color: rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Chỉnh riêng cho Dark Mode để Sidebar tối hơn chút */
+.dark div[data-sidebar="sidebar"] {
+    /* Lúc nãy là 0.3 (30%), giờ tớ tăng lên 0.8 (80%)
+       -> Màu đen sẽ đặc hơn, che bớt gradient phía sau đi -> Nhìn tối hơn hẳn.
+    */
+    background-color: rgba(0, 0, 0, 0.3) !important;
+
+    /* Border giữ nguyên để có đường viền nhẹ */
+    border-right: 1px solid rgba(255, 255, 255, 0.01) !important;
+}
+
+/* 3. Giữ nguyên: Chỉnh lại các Card để nổi bật */
+.card,
+div[class*="rounded-xl border bg-card"] {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(12px);
+}
+
+.dark .card,
+.dark div[class*="rounded-xl border bg-card"] {
+    background-color: rgba(24, 24, 27, 0.6) !important;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* TÙY CHỈNH NÚT MENU SIDEBAR */
+
+/* 1. Xử lý khi di chuột vào (Hover) */
+[data-sidebar="menu-button"]:hover {
+    /* Thay vì màu đen đặc, ta dùng màu trắng mờ 15% */
+    background-color: rgba(255, 255, 255, 0.15) !important;
+
+    /* Chữ sáng lên */
+    color: #ffffff !important;
+
+    /* Thêm chút hiệu ứng mờ kính */
+    backdrop-filter: blur(5px);
+}
+
+/* 2. Xử lý khi mục đó đang được chọn (Active) */
+[data-sidebar="menu-button"][data-active="true"] {
+    /* Màu nền đậm hơn hover một chút (Trắng mờ 25%) */
+    background-color: rgba(255, 255, 255, 0.25) !important;
+
+    /* Chữ trắng đậm */
+    color: #ffffff !important;
+    font-weight: 600;
+
+    /* Thêm bóng đổ nhẹ cho nổi bật */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 3. Xử lý icon bên trong nút */
+[data-sidebar="menu-button"]:hover svg,
+[data-sidebar="menu-button"][data-active="true"] svg {
+    /* Đảm bảo icon cũng chuyển sang màu trắng */
+    color: #ffffff !important;
+}
+
+/* (Tùy chọn) Chỉnh riêng cho Dark mode nếu cậu muốn nó tối hơn */
+.dark [data-sidebar="menu-button"]:hover {
+    background-color: rgba(0, 0, 0, 0.2) !important; /* Đen mờ */
+}
+.dark [data-sidebar="menu-button"][data-active="true"] {
+    background-color: rgba(0, 0, 0, 0.4) !important;
 }

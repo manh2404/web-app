@@ -154,29 +154,31 @@ export function ChartAreaInteractive() {
   })
 
   return (
-    <Card className="pt-0">
-      <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+    // 👇 THAY ĐỔI 1: Card nền trong suốt, mờ ảo (Glassmorphism)
+    <Card className="pt-0 bg-black/40 backdrop-blur-xl border-white/20 shadow-xl">
+      <CardHeader className="flex items-center gap-2 space-y-0 border-b border-white/10 py-5 sm:flex-row">
         <div className="grid flex-1 gap-1">
-          <CardTitle>Area Chart - Interactive</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white">Area Chart - Interactive</CardTitle>
+          <CardDescription className="text-white/70">
             Showing total visitors for the last 3 months
           </CardDescription>
         </div>
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger
-            className="hidden w-[160px] rounded-lg sm:ml-auto sm:flex"
+            // 👇 THAY ĐỔI 2: Select cũng phải kính mờ cho đồng bộ
+            className="hidden w-[160px] rounded-lg sm:ml-auto sm:flex bg-white/10 border-white/10 text-white hover:bg-white/20"
             aria-label="Select a value"
           >
             <SelectValue placeholder="Last 3 months" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="90d" className="rounded-lg">
+          <SelectContent className="rounded-xl bg-black/90 border-white/20 backdrop-blur-xl text-white">
+            <SelectItem value="90d" className="rounded-lg focus:bg-white/20 focus:text-white cursor-pointer">
               Last 3 months
             </SelectItem>
-            <SelectItem value="30d" className="rounded-lg">
+            <SelectItem value="30d" className="rounded-lg focus:bg-white/20 focus:text-white cursor-pointer">
               Last 30 days
             </SelectItem>
-            <SelectItem value="7d" className="rounded-lg">
+            <SelectItem value="7d" className="rounded-lg focus:bg-white/20 focus:text-white cursor-pointer">
               Last 7 days
             </SelectItem>
           </SelectContent>
@@ -214,7 +216,7 @@ export function ChartAreaInteractive() {
                 />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} />
+            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.1)" /> {/* Grid mờ hơn */}
             <XAxis
               dataKey="date"
               tickLine={false}
@@ -228,6 +230,7 @@ export function ChartAreaInteractive() {
                   day: "numeric",
                 })
               }}
+              stroke="rgba(255,255,255,0.6)" /* Màu chữ trục X sáng hơn */
             />
             <ChartTooltip
               cursor={false}
@@ -240,6 +243,7 @@ export function ChartAreaInteractive() {
                     })
                   }}
                   indicator="dot"
+                  className="bg-black/80 border-white/20 text-white backdrop-blur-md" /* Tooltip cũng kính mờ */
                 />
               }
             />
@@ -257,7 +261,7 @@ export function ChartAreaInteractive() {
               stroke="var(--color-desktop)"
               stackId="a"
             />
-            <ChartLegend content={<ChartLegendContent />} />
+            <ChartLegend content={<ChartLegendContent className="text-white" />} />
           </AreaChart>
         </ChartContainer>
       </CardContent>
