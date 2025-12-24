@@ -74,7 +74,7 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
             <SidebarMenuButton size="lg" asChild>
               <Link href="/control">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
+                  <Command className="size-" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{config.title}</span>

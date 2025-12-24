@@ -1,6 +1,8 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -16,15 +18,14 @@ import {
 } from '@/components/ui/sidebar';
 import { IMenuSideBarNav } from '@/models/menu-sidebar.model';
 import DynamicIcon from '@/components/parts/dynamic-icon';
-import { useTranslation } from 'react-i18next';
-import Link from 'next/link';
 
 export function NavMain({
                           items,
                         }: {
   items: IMenuSideBarNav[];
 }) {
-  const {t} = useTranslation();
+  const { t } = useTranslation();
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Menu</SidebarGroupLabel>
@@ -33,12 +34,22 @@ export function NavMain({
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip={t(item.title)}>
-                <Link href={item.url}>
-                  <DynamicIcon name={item.icon} />
-                  {item.icon && <item.icon />}
-                  <span>{t(item.title)}</span>
+                {/* Vẫn giữ flex và gap-3 để icon cách đều chữ */}
+                <Link href={item.url} className="flex items-center gap-3 w-full">
+
+                  {/* 👇 LOGIC HIỂN THỊ ICON ĐƯỢC SỬA LẠI: */}
+                  {/* Trường hợp 1: Icon là chuỗi tên (String) -> Dùng DynamicIcon */}
+                  {typeof item.icon === 'string' ? (
+                    <DynamicIcon name={item.icon} className="size-4" />
+                  ) : (
+                    /* Trường hợp 2: Icon là Component (LucideIcon) -> Render trực tiếp */
+                    item.icon && <item.icon className="size-4" />
+                  )}
+
+                  <span className="font-medium line-clamp-1 flex-1">{t(item.title)}</span>
                 </Link>
               </SidebarMenuButton>
+
               {item.items?.length ? (
                 <>
                   <CollapsibleTrigger asChild>
