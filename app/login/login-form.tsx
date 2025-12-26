@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ComponentPropsWithoutRef, FormEvent, useState } from 'react';
+import React, { ComponentPropsWithoutRef, FormEvent, useState } from 'react';
 import { POST_METHOD } from '@/lib/req';
 import { Trans, useTranslation } from 'react-i18next';
 import Link from 'next/link';
@@ -43,9 +43,9 @@ export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div
 
 	return (
 		<div className={cn('flex flex-col gap-6 w-full max-w-md mx-auto p-4', className)} {...props}>
-			{/* Hiệu ứng nền sáng rực rỡ hơn */}
-			<div className="absolute -z-10 top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/30 blur-[120px] rounded-full" />
-			<div className="absolute -z-10 bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/30 blur-[120px] rounded-full" />
+			{/* --- HIỆU ỨNG NỀN --- */}
+			<div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/30 blur-[120px] rounded-full animate-pulse" />
+			<div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/30 blur-[120px] rounded-full animate-pulse delay-700" />
 
 			{/* Card với nền kính sáng màu */}
 			<Card className="border-white/20 bg-white/10 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]">
@@ -76,7 +76,7 @@ export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div
 									type="text"
 									value={username}
 									onChange={(e) => setUsername(e.target.value)}
-									placeholder="Nhập tên đăng nhập..."
+									placeholder="Nhập email hoặc số điện thoại..."
 									className="pl-10 bg-white/20 border-white/30 focus:border-indigo-400 focus:ring-indigo-400/30 h-12 text-white placeholder:text-white/60 rounded-xl transition-all shadow-sm"
 									required
 								/>

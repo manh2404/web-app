@@ -3,14 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft,
-  Plus,
-  Trash2,
-  UserPlus,
-  Save,
-  Briefcase,
-  Users,
-  Calendar as CalendarIcon
+  ArrowLeft, Plus, Trash2, UserPlus, Save, Briefcase, Users, Calendar as CalendarIcon, KeyRound // 1. Thêm icon KeyRound
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -19,25 +12,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from '@/components/ui/card';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+// Xóa các import thừa nếu chưa dùng (Popover, Calendar, date-fns...)
 
 // Kiểu dữ liệu thành viên
 type Member = {
@@ -48,25 +30,46 @@ type Member = {
 };
 
 export default function CreateProjectPage() {
-  const [date, setDate] = useState<Date>();
+  // --- 2. STATE QUẢN LÝ DỮ LIỆU ---
+  const [projectName, setProjectName] = useState('');
+  const [projectKey, setProjectKey] = useState('');
+  const [description, setDescription] = useState('');
 
   // State quản lý danh sách thành viên
   const [members, setMembers] = useState<Member[]>([
     { id: '1', name: 'Nguyễn Văn A', email: 'vana@batek.vn', avatar: 'https://github.com/shadcn.png' },
   ]);
-
   const [newMemberName, setNewMemberName] = useState('');
+
+  // --- 3. LOGIC TỰ ĐỘNG SINH MÃ DỰ ÁN ---
+  const generateKey = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 5); // Giới hạn 5 ký tự
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setProjectName(val);
+
+    // Nếu key đang rỗng hoặc giống với key tự sinh cũ -> cập nhật key mới
+    if (!projectKey || projectKey === generateKey(projectName)) {
+      setProjectKey(generateKey(val));
+    }
+  };
 
   const handleAddMember = () => {
     if (!newMemberName.trim()) return;
-
     const newMember: Member = {
       id: Math.random().toString(36).substr(2, 9),
       name: newMemberName,
       email: `${newMemberName.toLowerCase().replace(/\s/g, '')}@batek.vn`,
       avatar: '',
     };
-
     setMembers([...members, newMember]);
     setNewMemberName('');
   };
@@ -92,7 +95,7 @@ export default function CreateProjectPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground drop-shadow-sm">Tạo Dự Án Mới</h1>
-            <p className="text-muted-foreground text-sm font-medium">Điền thông tin để khởi tạo dự án.</p>
+            <p className="text-white text-sm font-medium">Điền thông tin để khởi tạo dự án.</p>
           </div>
         </div>
 
@@ -109,54 +112,46 @@ export default function CreateProjectPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
 
-        {/* --- CỘT TRÁI: THÔNG TIN CHUNG (Chiếm 2 phần) --- */}
+        {/* --- CỘT TRÁI: THÔNG TIN CHUNG --- */}
         <div className="lg:col-span-2 space-y-6">
           <Card className={glassCardClass}>
             <CardHeader className="border-b border-white/10 pb-4">
               <CardTitle className="flex items-center gap-2">
                 <Briefcase className="h-5 w-5 text-indigo-500"/> Thông tin chung
               </CardTitle>
-              <CardDescription>Các thông tin cơ bản về dự án.</CardDescription>
+              <CardDescription className={"text-gray-400"}>Các thông tin cơ bản về dự án.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
 
-              {/* Project Name */}
-              <div className="space-y-2">
-                <Label htmlFor="projectName">Tên dự án <span className="text-red-500">*</span></Label>
-                <Input id="projectName" placeholder="Ví dụ: Website Bán Hàng..." className={glassInputClass} />
-              </div>
+              {/* Tên Dự Án & Mã Dự Án (Layout Grid) */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 
-              {/* Deadline & Budget (Ví dụ thêm trường) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Thời hạn (Deadline)</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          glassInputClass,
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : <span>Chọn ngày kết thúc</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                {/* 4. Tên Dự Án (Chiếm 3/4) */}
+                <div className="md:col-span-3 space-y-2">
+                  <Label htmlFor="projectName">Tên dự án <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="projectName"
+                    placeholder="Ví dụ: Website Bán Hàng..."
+                    className={glassInputClass}
+                    value={projectName}
+                    onChange={handleNameChange} // Gắn sự kiện nhập
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="budget">Ngân sách (VNĐ)</Label>
-                  <Input id="budget" type="number" placeholder="0" className={glassInputClass} />
+
+                {/* 5. Mã Dự Án (Chiếm 1/4) - MỚI */}
+                <div className="md:col-span-1 space-y-2">
+                  <Label htmlFor="projectKey" className="flex items-center gap-1">
+                    <KeyRound className="h-3.5 w-3.5 text-orange-500" /> Mã (Key) <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="projectKey"
+                    placeholder="WEB"
+                    className={cn(glassInputClass, "font-mono uppercase tracking-widest")}
+                    value={projectKey}
+                    onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
+                    maxLength={10}
+                  />
+                  <p className="text-[10px] text-muted-foreground">Dùng cho Task ID (VD: WEB-1)</p>
                 </div>
               </div>
 
@@ -167,13 +162,15 @@ export default function CreateProjectPage() {
                   id="description"
                   placeholder="Mô tả mục tiêu, phạm vi dự án..."
                   className={cn("min-h-[150px] resize-none", glassInputClass)}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* --- CỘT PHẢI: QUẢN LÝ THÀNH VIÊN (Chiếm 1 phần) --- */}
+        {/* --- CỘT PHẢI: QUẢN LÝ THÀNH VIÊN (Giữ nguyên) --- */}
         <div className="lg:col-span-1 space-y-6">
           <Card className={cn("h-full flex flex-col", glassCardClass)}>
             <CardHeader className="border-b border-white/10 pb-4">
@@ -254,7 +251,7 @@ export default function CreateProjectPage() {
         </div>
       </div>
 
-      {/* --- MOBILE ACTION FOOTER (Chỉ hiện trên mobile) --- */}
+      {/* --- MOBILE ACTION FOOTER --- */}
       <div className="flex sm:hidden items-center gap-4 mt-8 pb-4">
         <Button className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 h-12 shadow-lg">
           <Save className="mr-2 h-4 w-4" /> Lưu Dự Án

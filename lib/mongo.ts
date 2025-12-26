@@ -3,18 +3,17 @@ import mongoose from 'mongoose';
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('Vui lòng định nghĩa biến MONGODB_URI trong file .env.local');
+  throw new Error('Vui lòng định nghĩa biến MONGODB_URI trong file .env');
 }
 
-/** * Khai báo kiểu dữ liệu cho biến global để TypeScript không báo lỗi đỏ trong WebStorm
- */
-interface GlobalMongoose {
+interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
 }
 
 declare global {
-  var mongoose: GlobalMongoose | undefined;
+  // eslint-disable-next-line no-var
+  var mongoose: MongooseCache | undefined;
 }
 
 let cached = global.mongoose;
@@ -23,6 +22,7 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
+// --- HÀM KẾT NỐI (CORE) ---
 async function dbConnect() {
   if (cached!.conn) {
     return cached!.conn;
@@ -33,9 +33,9 @@ async function dbConnect() {
       bufferCommands: false,
     };
 
-    console.log('Đang kết nối tới MongoDB...');
+    console.log('🔄 Đang kết nối tới MongoDB...');
     cached!.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
-      console.log('Kết nối MongoDB thành công!');
+      console.log('✅ Kết nối MongoDB thành công!');
       return mongoose;
     });
   }
@@ -50,4 +50,10 @@ async function dbConnect() {
   return cached!.conn;
 }
 
+// --- XUẤT RA CẢ 2 DẠNG ĐỂ KHÔNG BỊ LỖI ---
+
+// 1. Dạng Default (Cho các file cũ như config.service.ts)
 export default dbConnect;
+
+// 2. Dạng Named (Cho file route.ts mới)
+export const connectToDatabase = dbConnect;

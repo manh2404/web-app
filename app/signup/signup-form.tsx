@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentPropsWithoutRef, useState } from 'react';
+import React, { ComponentPropsWithoutRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trans, useTranslation } from 'react-i18next';
 import { signupSchema, SignupSchema } from '@/lib/schemas/signup.schema';
@@ -85,9 +85,9 @@ export function SignupForm({ className, ...props }: ComponentPropsWithoutRef<'di
   return (
     <div className={cn("flex flex-col gap-6 w-full max-w-lg mx-auto p-4", className)} {...props}>
 
-      {/* --- HIỆU ỨNG NỀN (Đồng bộ Login) --- */}
-      <div className="absolute -z-10 top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/30 blur-[120px] rounded-full" />
-      <div className="absolute -z-10 bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/30 blur-[120px] rounded-full" />
+      {/* --- HIỆU ỨNG NỀN --- */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/30 blur-[120px] rounded-full animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/30 blur-[120px] rounded-full animate-pulse delay-700" />
 
       <Card className="border-white/20 bg-white/10 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]">
         <CardHeader className="text-center space-y-2 pb-2">

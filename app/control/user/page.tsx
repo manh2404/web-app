@@ -8,11 +8,9 @@ import {
   Download,
   Trash2,
   Edit,
-  UserCog,
-  ShieldCheck,
   User,
   Mail,
-  CheckCircle2
+  RefreshCw,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -21,7 +19,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
-  CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -43,18 +40,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 // --- DỮ LIỆU GIẢ LẬP ---
 const users = [
-  { id: "U-001", name: "Nguyễn Văn Mạnh", email: "manh.nguyen@batek.vn", role: "Admin", department: "IT Dept", status: "Active", lastActive: "Vừa xong", avatar: "https://github.com/shadcn.png" },
-  { id: "U-002", name: "Trần Thị Bích", email: "b.tran@batek.vn", role: "Manager", department: "Marketing", status: "Active", lastActive: "2 giờ trước", avatar: "" },
-  { id: "U-003", name: "Lê Văn Cường", email: "c.le@batek.vn", role: "Staff", department: "Sales", status: "Offline", lastActive: "2 ngày trước", avatar: "" },
-  { id: "U-004", name: "Phạm Thị Dung", email: "d.pham@batek.vn", role: "Staff", department: "HR", status: "Active", lastActive: "5 phút trước", avatar: "" },
-  { id: "U-005", name: "Hoàng Văn Em", email: "e.hoang@batek.vn", role: "Intern", department: "IT Dept", status: "Inactive", lastActive: "1 tuần trước", avatar: "" },
+  { id: "U-001", name: "Lý Hoàng Khiêm", email: "hoangkhiem@batek.vn", role: "Admin", department: "IT Dept", status: "Active", lastActive: "Vừa xong", avatar: "avt.jpg" },
+  { id: "U-002", name: "Nguyễn Thị Tâm", email: "tam@batek.vn", role: "Staff", department: "Marketing", status: "Active", lastActive: "2 giờ trước", avatar: "tam.jpg" },
+  { id: "U-003", name: "Nông Thị Hồng Nhung", email: "hongnhung@batek.vn", role: "Staff", department: "Sales", status: "Offline", lastActive: "2 ngày trước", avatar: "" },
+  { id: "U-004", name: "Bùi Văn Mạnh", email: "buimanh@batek.vn", role: "Staff", department: "HR", status: "Active", lastActive: "5 phút trước", avatar: "manh.jpg" },
+  { id: "U-005", name: "Trần Tuấn Khôi", email: "trankhoi@batek.vn", role: "Intern", department: "IT Dept", status: "Inactive", lastActive: "1 tuần trước", avatar: "khoi.jpg" },
 ];
 
 export default function UserManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const router = useRouter();
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -64,6 +64,13 @@ export default function UserManagementPage() {
   // Class chung cho các thẻ kính mờ (Glass Effect)
   const glassCardClass = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border-white/20 shadow-sm hover:shadow-md transition-all";
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true); // Bắt đầu xoay
+    router.refresh();
+    setTimeout(() => {
+      setIsRefreshing(false); // Dừng xoay
+    }, 800);
+  };
   return (
     // Bỏ bg-muted, để trong suốt để thấy Gradient nền
     <div className="flex flex-col h-full w-full space-y-6 p-6 overflow-y-auto">
@@ -76,7 +83,21 @@ export default function UserManagementPage() {
             Quản lý tài khoản và quyền truy cập hệ thống.
           </p>
         </div>
+
+        {/* Nhóm các nút hành động */}
         <div className="flex gap-2">
+
+          {/* --- NÚT LÀM MỚI (Đã thêm vào đây) --- */}
+          <Button
+            variant="outline"
+            className="gap-2 bg-white/40 dark:bg-black/40 border-white/20 backdrop-blur-md hover:bg-white/60"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            Làm mới
+          </Button>
+
           {/* Nút Xuất Excel trong suốt */}
           <Button variant="outline" className="gap-2 bg-white/40 dark:bg-black/40 border-white/20 backdrop-blur-md hover:bg-white/60">
             <Download className="h-4 w-4" /> Xuất Excel
@@ -92,26 +113,26 @@ export default function UserManagementPage() {
         </div>
       </div>
 
-      {/* --- STATS CARDS (Kính mờ) --- */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[
-          { title: "Tổng nhân viên", value: users.length, sub: "+2 nhân sự mới", icon: User, color: "text-blue-600" },
-          { title: "Đang hoạt động", value: "3", sub: "Hiện đang online", icon: CheckCircle2, color: "text-green-600" },
-          { title: "Quản trị viên", value: "1", sub: "Quyền cao nhất", icon: ShieldCheck, color: "text-purple-600" },
-          { title: "Tạm khóa", value: "1", sub: "Cần xem xét", icon: UserCog, color: "text-orange-600" },
-        ].map((item, index) => (
-          <Card key={index} className={glassCardClass}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{item.title}</CardTitle>
-              <item.icon className={cn("h-4 w-4", item.color)} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{item.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{item.sub}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/*/!* --- STATS CARDS (Kính mờ) --- *!/*/}
+      {/*<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">*/}
+      {/* {[*/}
+      {/* { title: "Tổng nhân viên", value: users.length, sub: "+2 nhân sự mới", icon: User, color: "text-blue-600" },*/}
+      {/* { title: "Đang hoạt động", value: "3", sub: "Hiện đang online", icon: CheckCircle2, color: "text-green-600" },*/}
+      {/* { title: "Quản trị viên", value: "1", sub: "Quyền cao nhất", icon: ShieldCheck, color: "text-purple-600" },*/}
+      {/* { title: "Tạm khóa", value: "1", sub: "Cần xem xét", icon: UserCog, color: "text-orange-600" },*/}
+      {/* ].map((item, index) => (*/}
+      {/* <Card key={index} className={glassCardClass}>*/}
+      {/* <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">*/}
+      {/* <CardTitle className="text-sm font-medium text-muted-foreground">{item.title}</CardTitle>*/}
+      {/* <item.icon className={cn("h-4 w-4", item.color)} />*/}
+      {/* </CardHeader>*/}
+      {/* <CardContent>*/}
+      {/* <div className="text-2xl font-bold">{item.value}</div>*/}
+      {/* <p className="text-xs text-muted-foreground mt-1">{item.sub}</p>*/}
+      {/* </CardContent>*/}
+      {/* </Card>*/}
+      {/* ))}*/}
+      {/*</div>*/}
 
       {/* --- MAIN TABLE (Kính mờ lớn) --- */}
       <Card className={cn("flex-1", glassCardClass)}>
@@ -123,7 +144,7 @@ export default function UserManagementPage() {
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Tìm theo tên hoặc email..."
+                placeholder="Tìm nhân viên..."
                 className="pl-9 bg-white/40 dark:bg-black/20 border-white/20 focus-visible:ring-blue-500/50"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -152,7 +173,8 @@ export default function UserManagementPage() {
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9 border-2 border-white/50 dark:border-white/10 shadow-sm">
-                        <AvatarImage src={user.avatar} />
+                        <AvatarImage src={`/${user.avatar}`}
+                                     className="object-cover" />
                         <AvatarFallback className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white font-bold">
                           {user.name[0]}
                         </AvatarFallback>

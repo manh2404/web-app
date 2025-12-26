@@ -137,11 +137,8 @@
     }
 
     body {
-        /* 👇 ĐÃ SỬA: Bỏ bg-background, thêm Gradient mới */
-        @apply text-foreground;
-
-        background: linear-gradient(90deg, #f05053 0%, #5753c9 100%);
-        min-height: 100vh;
+        @apply text-foreground antialiased min-h-screen relative;
+        background-color: #020617;
         font-feature-settings: "rlig" 1, "calt" 1;
     }
 }
