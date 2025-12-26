@@ -1,14 +1,22 @@
 import mongoose from 'mongoose';
 
-if (!process.env['MONGODB_URI']) {
-  throw new Error('Vui lòng đặt biến môi trường MONGODB_URI trong .env.local');
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  throw new Error('Vui lòng định nghĩa biến MONGODB_URI trong file .env.local');
 }
 
-const uri = process.env['MONGODB_URI'];
-
-/**
- * Cached connection for MongoDB.
+/** * Khai báo kiểu dữ liệu cho biến global để TypeScript không báo lỗi đỏ trong WebStorm
  */
+interface GlobalMongoose {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
+
+declare global {
+  var mongoose: GlobalMongoose | undefined;
+}
+
 let cached = global.mongoose;
 
 if (!cached) {
@@ -16,20 +24,30 @@ if (!cached) {
 }
 
 async function dbConnect() {
-  if (cached) {
-    if (cached.conn) {
-      return cached.conn;
-    }
-
-    if (!cached.promise) {
-      console.log('Connecting to MongoDB...', uri);
-      cached.promise = mongoose.connect(uri).then((mongoose) => {
-        return mongoose;
-      });
-    }
-    cached.conn = await cached.promise;
-    return cached.conn;
+  if (cached!.conn) {
+    return cached!.conn;
   }
+
+  if (!cached!.promise) {
+    const opts = {
+      bufferCommands: false,
+    };
+
+    console.log('Đang kết nối tới MongoDB...');
+    cached!.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+      console.log('Kết nối MongoDB thành công!');
+      return mongoose;
+    });
+  }
+
+  try {
+    cached!.conn = await cached!.promise;
+  } catch (e) {
+    cached!.promise = null;
+    throw e;
+  }
+
+  return cached!.conn;
 }
 
 export default dbConnect;
