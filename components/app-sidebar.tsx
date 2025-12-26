@@ -1,6 +1,9 @@
 'use client';
 
 import * as React from 'react';
+import { useEffect, useState } from 'react'; // Thêm hook
+import axios from 'axios'; // Thêm axios
+import { useParams } from 'next/navigation'; // Thêm để lấy ID từ URL
 import {
   Command,
   SquareKanban,
@@ -11,8 +14,8 @@ import {
   Plus,
   FolderKanban,
   MoreHorizontal,
-  LinkIcon, // Thêm icon này để làm nút sao chép
-  Settings2  // Thêm icon này để làm nút cài đặt
+  LinkIcon,
+  Settings2
 } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
@@ -34,7 +37,6 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 
-// Import thêm DropdownMenu
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +50,7 @@ import { useAppContext } from '@/context/app-context';
 import { IUser } from "@/models/user.model";
 import { IMenuSideBar } from "@/models/menu-sidebar.model";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils"; // Import cn để xử lý class động
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user: IUser;
@@ -57,6 +60,30 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 export function AppSidebar({ ...props }: AppSidebarProps) {
   const { config } = useAppContext()
   const { t } = useTranslation();
+  const params = useParams(); // Lấy params từ URL
+  const currentProjectId = params?.id; // ID dự án hiện tại
+
+  // 1. STATE CHỨA DỰ ÁN THẬT
+  const [projects, setProjects] = useState<any[]>([]);
+
+  // 2. FETCH DATA TỪ MONGODB
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await axios.get('/api/projects');
+        // Map dữ liệu MongoDB sang format Sidebar cần
+        const mappedProjects = response.data.map((p: any) => ({
+          id: p._id,
+          name: p.title,
+          icon: '📦', // Icon mặc định vì DB chưa có field icon
+        }));
+        setProjects(mappedProjects);
+      } catch (error) {
+        console.error("Lỗi tải sidebar projects:", error);
+      }
+    };
+    fetchProjects();
+  }, []);
 
   const projectMenuStatic = {
     title: "Dự Án",
@@ -66,11 +93,6 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
   };
 
   const mergedNavMain = [...(props.data.navMain || []), projectMenuStatic];
-
-  const realProjects = [
-    { id: '1', name: 'Batek', icon: '👇' },
-    { id: '2', name: 'AI Platform', icon: '🚀' },
-  ];
 
   const supportMenu = [
     { title: "Hỗ trợ", url: "/control/support", icon: LifeBuoy },
@@ -106,29 +128,63 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
 
         <Collapsible defaultOpen className="group/workspace">
           <SidebarGroup>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex w-full items-center justify-between hover:text-white transition-colors cursor-pointer">
-                <span>Dự Án</span>
-                <ChevronRight className="size-3.5 transition-transform duration-200 group-data-[state=open]/workspace:rotate-90" />
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
+            {/* 3. SỬA LABEL ĐỂ THÊM NÚT PLUS */}
+            <div className="group flex items-center justify-between pr-2 mb-2">
+              <SidebarGroupLabel asChild className="p-0 flex-1">
+                <CollapsibleTrigger className="flex items-center cursor-pointer h-8 text-zinc-300 hover:text-white transition-colors">
+                  <span className="text-xs font-bold uppercase tracking-wider pl-2 select-none">
+                    Dự Án
+                  </span>
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                {/* Nút tạo nhanh dự án */}
+                <Link href="/control/projects/create">
+                  <SidebarMenuButton
+                    size="sm"
+                    className="h-6 w-6 rounded-md hover:bg-white/10 text-zinc-400 hover:text-indigo-400 transition-all p-0 flex items-center justify-center"
+                  >
+                    <Plus className="size-3.5" />
+                  </SidebarMenuButton>
+                </Link>
+
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton
+                    size="sm"
+                    className="h-6 w-6 rounded-md bg-transparent text-zinc-400 hover:bg-white/10 hover:text-white p-0 flex items-center justify-center cursor-pointer"
+                  >
+                    <ChevronRight className="size-3.5 transition-transform duration-200 group-data-[state=open]/workspace:rotate-90" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+              </div>
+            </div>
 
             <CollapsibleContent>
               <SidebarMenu>
-                {realProjects.map((project) => (
-                  <Collapsible key={project.id} asChild className="group/project">
+                {/* 4. MAP DỰ ÁN THẬT TỪ STATE */}
+                {projects.map((project) => (
+                  <Collapsible
+                    key={project.id}
+                    asChild
+                    className="group/project"
+                    defaultOpen={project.id === currentProjectId} // Tự mở nếu đang ở dự án này
+                  >
                     <SidebarMenuItem className="relative">
-
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton className="hover:bg-white/5 cursor-pointer pr-16 h-9">
+                        <SidebarMenuButton
+                          className={cn(
+                            "hover:bg-white/5 cursor-pointer pr-16 h-9",
+                            project.id === currentProjectId && "bg-white/10 text-indigo-400" // Highlight
+                          )}
+                        >
                           <span className="text-base">{project.icon}</span>
                           <span className="font-medium">{project.name}</span>
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
 
                       <div className="absolute right-1.5 top-0 bottom-0 flex items-center gap-0.5 opacity-0 group-hover/project:opacity-100 transition-opacity z-10">
-
-                        {/* --- PHẦN SỬA: BIẾN NÚT 3 CHẤM THÀNH DROPDOWN MENU --- */}
+                        {/* Dropdown Menu */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <SidebarMenuAction
@@ -139,7 +195,6 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
                             </SidebarMenuAction>
                           </DropdownMenuTrigger>
 
-                          {/* FORM NHO NHỎ NHƯ ẢNH MẪU */}
                           <DropdownMenuContent
                             align="end"
                             side="right"
@@ -150,7 +205,6 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
                               onClick={() => {
                                 const link = `${window.location.origin}/control/projects/${project.id}`;
                                 navigator.clipboard.writeText(link);
-                                // Thêm thông báo nếu cậu đã cài Toast, không thì alert tạm
                                 alert("Đã sao chép liên kết dự án!");
                               }}
                             >
@@ -161,7 +215,6 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
                             <DropdownMenuItem
                               className="flex items-center gap-2 cursor-pointer focus:bg-white/10 py-2.5 text-red-400 focus:text-red-400"
                               onClick={() => {
-                                // Logic lưu trữ nếu cần
                                 alert("Đã đưa vào lưu trữ!");
                               }}
                             >
@@ -192,7 +245,8 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
                         <SidebarMenuSub className="border-l border-white/10 ml-4">
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton asChild>
-                              <Link href={`/control/projects/workitem`} className="flex items-center gap-2">
+                              {/* Cập nhật Link WorkItem động theo ID */}
+                              <Link href={`/control/projects/${project.id}/workitems`} className="flex items-center gap-2">
                                 <SquareKanban className="size-3.5" />
                                 <span>WorkItem</span>
                               </Link>
@@ -200,7 +254,8 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton asChild>
-                              <Link href={`/control/projects/statistics`} className="flex items-center gap-2">
+                              {/* Cập nhật Link Thống kê động theo ID */}
+                              <Link href={`/control/projects/${project.id}/statistics`} className="flex items-center gap-2">
                                 <PieChart className="size-3.5" />
                                 <span>Thống kê</span>
                               </Link>
@@ -211,6 +266,13 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
                     </SidebarMenuItem>
                   </Collapsible>
                 ))}
+
+                {/* Hiển thị khi chưa có dự án */}
+                {projects.length === 0 && (
+                  <div className="text-[10px] text-zinc-600 px-4 py-2 italic text-center">
+                    Đang tải hoặc chưa có dự án...
+                  </div>
+                )}
               </SidebarMenu>
             </CollapsibleContent>
           </SidebarGroup>

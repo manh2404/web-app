@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { ComponentPropsWithoutRef } from 'react';
+import { ComponentPropsWithoutRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trans, useTranslation } from 'react-i18next';
 import { signupSchema, SignupSchema } from '@/lib/schemas/signup.schema';
@@ -12,10 +12,15 @@ import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { User, Phone, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'; // Import icons
 
-export function SignupForm({className, ...props}: ComponentPropsWithoutRef<'div'>) {
+export function SignupForm({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
   const router = useRouter();
-  const {t} = useTranslation();
+  const { t } = useTranslation();
+
+  // State quản lý UI
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // form state (react-hook-form + zod)
   const form = useForm<SignupSchema>({
@@ -57,89 +62,153 @@ export function SignupForm({className, ...props}: ComponentPropsWithoutRef<'div'
 
   // Submit handler
   const onSubmit = async (data: SignupSchema) => {
+    setIsLoading(true); // Bật loading
     try {
       await fetch("/api/signup", {
         method: "POST",
         body: JSON.stringify(data)
       });
-
+      // Redirect hoặc thông báo thành công
       router.push("/login");
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsLoading(false); // Tắt loading
     }
   };
 
-  return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">{t("i_signup")}</CardTitle>
+  // Class chung cho Input để đồng bộ
+  const inputClass = "pl-10 bg-white/20 border-white/30 focus:border-indigo-400 focus:ring-indigo-400/30 h-11 text-white placeholder:text-white/60 rounded-xl transition-all shadow-sm";
+  const labelClass = "text-white font-semibold pl-1 drop-shadow-sm";
+  const iconClass = "absolute left-3 top-3 h-5 w-5 text-white/70 group-focus-within:text-indigo-300 transition-colors";
 
-          <CardDescription>
+  return (
+    <div className={cn("flex flex-col gap-6 w-full max-w-lg mx-auto p-4", className)} {...props}>
+
+      {/* --- HIỆU ỨNG NỀN (Đồng bộ Login) --- */}
+      <div className="absolute -z-10 top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/30 blur-[120px] rounded-full" />
+      <div className="absolute -z-10 bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/30 blur-[120px] rounded-full" />
+
+      <Card className="border-white/20 bg-white/10 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]">
+        <CardHeader className="text-center space-y-2 pb-2">
+          <CardTitle className="text-3xl font-bold tracking-tight text-white drop-shadow-sm">
+            {t("i_signup")}
+          </CardTitle>
+
+          <CardDescription className="text-base text-zinc-100 font-medium drop-shadow-sm">
             <Trans
               i18nKey="i_signup_desc"
               components={{
-                1: <Link href="/login" className="text-primary underline" />
+                1: <Link href="/login" className="text-indigo-300 hover:text-indigo-200 font-bold hover:underline underline-offset-4 transition-colors drop-shadow-sm" />
               }}
             />
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
-            {/* Firstname */}
-            <div className="grid gap-2">
-              <Label>Họ</Label>
-              <Input {...register("firstname")} />
-              {errors.firstname && (
-                <p className="text-red-500 text-sm">{errors.firstname.message}</p>
-              )}
-            </div>
+        <CardContent className="pt-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
 
-            {/* Lastname */}
-            <div className="grid gap-2">
-              <Label>Tên</Label>
-              <Input {...register("lastname")} />
-              {errors.lastname && (
-                <p className="text-red-500 text-sm">{errors.lastname.message}</p>
-              )}
+            {/* Hàng 1: Họ và Tên (Chia đôi cột) */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Firstname */}
+              <div className="grid gap-2">
+                <Label className={labelClass}>Họ</Label>
+                <div className="relative group">
+                  <User className={iconClass} />
+                  <Input {...register("firstname")} className={inputClass} placeholder="Nguyễn" />
+                </div>
+                {errors.firstname && (
+                  <p className="text-red-300 text-xs pl-1 font-medium">{errors.firstname.message}</p>
+                )}
+              </div>
+
+              {/* Lastname */}
+              <div className="grid gap-2">
+                <Label className={labelClass}>Tên</Label>
+                <div className="relative group">
+                  <User className={iconClass} />
+                  <Input {...register("lastname")} className={inputClass} placeholder="Văn A" />
+                </div>
+                {errors.lastname && (
+                  <p className="text-red-300 text-xs pl-1 font-medium">{errors.lastname.message}</p>
+                )}
+              </div>
             </div>
 
             {/* Email (optional) */}
             <div className="grid gap-2">
-              <Label>Email (không bắt buộc)</Label>
-              <Input
-                {...register("email")}
-                onBlur={(e) => checkExists("email", e.target.value)}
-              />
+              <Label className={labelClass}>Email <span className="text-zinc-300 text-xs font-normal">(Tùy chọn)</span></Label>
+              <div className="relative group">
+                <Mail className={iconClass} />
+                <Input
+                  {...register("email")}
+                  className={inputClass}
+                  placeholder="name@example.com"
+                  onBlur={(e) => {
+                    register("email").onBlur(e);
+                    checkExists("email", e.target.value);
+                  }}
+                />
+              </div>
               {errors.email && (
-                <p className="text-red-500 text-sm">{errors.email.message}</p>
+                <p className="text-red-300 text-xs pl-1 font-medium">{errors.email.message}</p>
               )}
             </div>
 
             {/* Phone */}
             <div className="grid gap-2">
-              <Label>Số điện thoại</Label>
-              <Input
-                {...register("phone")}
-                onBlur={(e) => checkExists("phone", e.target.value)}
-              />
+              <Label className={labelClass}>Số điện thoại</Label>
+              <div className="relative group">
+                <Phone className={iconClass} />
+                <Input
+                  {...register("phone")}
+                  className={inputClass}
+                  placeholder="0912..."
+                  onBlur={(e) => {
+                    register("phone").onBlur(e);
+                    checkExists("phone", e.target.value);
+                  }}
+                />
+              </div>
               {errors.phone && (
-                <p className="text-red-500 text-sm">{errors.phone.message}</p>
+                <p className="text-red-300 text-xs pl-1 font-medium">{errors.phone.message}</p>
               )}
             </div>
 
             {/* Password */}
             <div className="grid gap-2">
-              <Label>Mật khẩu</Label>
-              <Input type="password" {...register("password")} />
+              <Label className={labelClass}>Mật khẩu</Label>
+              <div className="relative group">
+                <Lock className={iconClass} />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  {...register("password")}
+                  className={`${inputClass} pr-10`} // Padding right cho nút mắt
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-white/70 hover:text-white transition-colors focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
               {errors.password && (
-                <p className="text-red-500 text-sm">{errors.password.message}</p>
+                <p className="text-red-300 text-xs pl-1 font-medium">{errors.password.message}</p>
               )}
             </div>
 
-            <Button type="submit" className="w-full">
-              {t("i_signup")}
+            <Button
+              type="submit"
+              className="w-full h-12 mt-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-indigo-500/30 transition-all active:scale-[0.98]"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Đang đăng ký...</>
+              ) : (
+                t("i_signup")
+              )}
             </Button>
           </form>
         </CardContent>
