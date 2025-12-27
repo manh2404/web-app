@@ -17,6 +17,8 @@ import {
   Calendar,
   Clock,
   Pen,
+  Eye,      // Import thêm icon Mắt mở
+  EyeOff,   // Import thêm icon Mắt đóng
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'; // Hoặc dùng alert nếu chưa cài sonner
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 type ViewMode = 'VIEW' | 'EDIT_PROFILE' | 'CHANGE_PASSWORD';
 
@@ -38,9 +40,24 @@ export default function AccountPage() {
 
   // --- STATE QUẢN LÝ ẢNH ---
   const [avatarUrl, setAvatarUrl] = useState<string>("https://github.com/shadcn.png");
-  const [coverUrl, setCoverUrl] = useState<string | null>(null); // Mặc định null để hiện gradient
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  // --- REFS ĐỂ KÍCH HOẠT INPUT FILE ---
+  // --- STATE QUẢN LÝ MẬT KHẨU (MỚI THÊM) ---
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  });
+
+  // State quản lý ẩn/hiện cho từng ô input riêng biệt
+  const [showPass, setShowPass] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+
+  // --- REFS ---
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,9 +65,7 @@ export default function AccountPage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
     const file = event.target.files?.[0];
     if (file) {
-      // Tạo URL xem trước ảnh (Preview)
       const previewUrl = URL.createObjectURL(file);
-
       if (type === 'avatar') {
         setAvatarUrl(previewUrl);
         toast.success("Đã thay đổi ảnh đại diện!");
@@ -58,40 +73,52 @@ export default function AccountPage() {
         setCoverUrl(previewUrl);
         toast.success("Đã thay đổi ảnh bìa!");
       }
-
-      // TODO: Tại đây cậu sẽ gọi API để upload file lên Server (AWS S3, Cloudinary...)
-      // const formData = new FormData(); formData.append('file', file); ...
     }
+  };
+
+  // --- XỬ LÝ ĐỔI MẬT KHẨU (MỚI THÊM) ---
+  const handleChangePassword = () => {
+    // 1. Kiểm tra rỗng (Bắt buộc)
+    if (!passwords.current || !passwords.new || !passwords.confirm) {
+      toast.error("Vui lòng nhập đầy đủ các trường bắt buộc!");
+      return;
+    }
+
+    // 2. Kiểm tra mật khẩu mới trùng khớp (Optional logic nhưng nên có)
+    if (passwords.new !== passwords.confirm) {
+      toast.error("Mật khẩu xác nhận không khớp!");
+      return;
+    }
+
+    // 3. Giả lập gọi API thành công
+    toast.success("Đổi mật khẩu thành công!");
+
+    // Reset form và về trang view
+    setPasswords({ current: '', new: '', confirm: '' });
+    setViewMode('VIEW');
+  };
+
+  // Hàm toggle ẩn hiện
+  const toggleShow = (field: keyof typeof showPass) => {
+    setShowPass(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
   // --- STYLE ---
   const glassCard = "bg-white/10 dark:bg-black/40 backdrop-blur-xl border-white/10 shadow-sm hover:bg-white/15 transition-all duration-300";
-  const inputStyle = "bg-white/5 border-white/10 focus:border-indigo-500/50 h-10 text-sm";
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  // Thêm padding-right (pr-10) để chữ không bị đè lên icon con mắt
+  const inputStyle = "bg-white/5 border-white/10 focus:border-indigo-500/50 h-10 text-sm pr-10";
+
   // --- 1. VIEW MODE ---
   if (viewMode === 'VIEW') {
     return (
       <div className="relative w-full h-full bg-[#050505] text-white overflow-y-auto">
 
-        {/* --- INPUT ẨN ĐỂ CHỌN FILE (QUAN TRỌNG) --- */}
-        <input
-          type="file"
-          ref={avatarInputRef}
-          className="hidden"
-          accept="image/*"
-          onChange={(e) => handleFileChange(e, 'avatar')}
-        />
-        <input
-          type="file"
-          ref={coverInputRef}
-          className="hidden"
-          accept="image/*"
-          onChange={(e) => handleFileChange(e, 'cover')}
-        />
+        {/* INPUT ẨN */}
+        <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'avatar')} />
+        <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'cover')} />
 
-        {/* --- COVER IMAGE AREA (Khu vực Ảnh bìa) --- */}
+        {/* COVER IMAGE */}
         <div className="relative w-full h-44 group/cover">
-          {/* Nếu có ảnh bìa thì hiện ảnh, không thì hiện Gradient mặc định */}
           {coverUrl ? (
             <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" />
           ) : (
@@ -99,23 +126,14 @@ export default function AccountPage() {
               <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
             </div>
           )}
-
-          {/* Overlay đen mờ khi hover vào ảnh bìa */}
           <div className="absolute inset-0 bg-black/0 group-hover/cover:bg-black/20 transition-colors duration-300" />
 
-          {/* NÚT THAY ĐỔI ẢNH BÌA (ICON BÚT - XANH LÁ/TRẮNG) */}
           <div className="absolute top-4 right-16 z-20 opacity-0 group-hover/cover:opacity-100 transition-opacity duration-300">
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-8 gap-2 bg-white/20 hover:bg-white/40 text-white backdrop-blur-md border border-white/20 shadow-lg"
-              onClick={() => coverInputRef.current?.click()}
-            >
+            <Button variant="secondary" size="sm" className="h-8 gap-2 bg-white/20 hover:bg-white/40 text-white backdrop-blur-md border border-white/20 shadow-lg" onClick={() => coverInputRef.current?.click()}>
               <Pen className="h-3.5 w-3.5" /> <span className="text-xs font-medium">Đổi ảnh bìa</span>
             </Button>
           </div>
 
-          {/* Nút Cài đặt (Menu Dropdown) */}
           <div className="absolute top-4 right-6 z-20">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -137,66 +155,29 @@ export default function AccountPage() {
           </div>
         </div>
 
-        {/* --- MAIN CONTENT --- */}
+        {/* MAIN CONTENT */}
         <div className="px-6 md:px-10 -mt-14 pb-8 relative z-10 w-full max-w-[1600px] mx-auto">
-
-          {/* HEADER PROFILE */}
           <div className="flex flex-col md:flex-row items-end gap-5 mb-6">
-            {/* AVATAR AREA */}
             <div className="relative group/avatar inline-block">
-
-              {/* 1. AVATAR CHÍNH: Click để xem ảnh */}
-              <Avatar
-                className="h-32 w-32 border-[4px] border-[#050505] shadow-2xl rounded-full transition-transform group-hover/avatar:scale-105 cursor-pointer"
-                onClick={() => setIsPreviewOpen(true)} // Mở modal xem ảnh
-              >
+              <Avatar className="h-32 w-32 border-[4px] border-[#050505] shadow-2xl rounded-full transition-transform group-hover/avatar:scale-105 cursor-pointer" onClick={() => setIsPreviewOpen(true)}>
                 <AvatarImage src={avatarUrl} className="object-cover" />
                 <AvatarFallback className="text-3xl bg-zinc-800 text-white">US</AvatarFallback>
               </Avatar>
-
-              {/* (ĐÃ XÓA): Overlay Icon Camera khi hover */}
-
-              {/* 2. NÚT UP ẢNH NHỎ (Góc phải): Click để Upload */}
-              <div
-                className="absolute bottom-1 right-1 bg-indigo-600 p-1.5 rounded-full text-white shadow-lg border-[3px] border-[#050505] cursor-pointer hover:bg-indigo-700 transition-colors z-20"
-                onClick={(e) => {
-                  e.stopPropagation(); // QUAN TRỌNG: Chặn không cho sự kiện click lan ra Avatar to (tránh mở xem ảnh)
-                  avatarInputRef.current?.click(); // Kích hoạt input file
-                }}
-              >
+              <div className="absolute bottom-1 right-1 bg-indigo-600 p-1.5 rounded-full text-white shadow-lg border-[3px] border-[#050505] cursor-pointer hover:bg-indigo-700 transition-colors z-20" onClick={(e) => { e.stopPropagation(); avatarInputRef.current?.click(); }}>
                 <Camera className="h-3.5 w-3.5" />
               </div>
             </div>
 
-            {/* --- MODAL XEM ẢNH FULL MÀN HÌNH --- */}
             <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
               <DialogContent className="max-w-none w-screen h-screen p-0 border-none bg-black/90 flex items-center justify-center z-[9999] outline-none">
-                {/* Title ẩn cho Accessibility */}
                 <DialogTitle className="hidden">Xem ảnh đại diện</DialogTitle>
-
-                {/* Nút đóng (X) */}
-                <button
-                  onClick={() => setIsPreviewOpen(false)}
-                  className="absolute top-5 right-5 text-white transition-all z-50 hover:opacity-70"
-                >
-                </button>
-
-                {/* Ảnh Full Size */}
-                <div
-                  className="relative w-full h-full p-4 flex items-center justify-center"
-                  onClick={() => setIsPreviewOpen(false)} // Click ra ngoài ảnh cũng đóng
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={avatarUrl}
-                    alt="Full Avatar"
-                    className="max-w-full max-h-full object-contain rounded-md shadow-2xl animate-in zoom-in-95 duration-300"
-                  />
+                <button onClick={() => setIsPreviewOpen(false)} className="absolute top-5 right-5 text-white transition-all z-50 hover:opacity-70"></button>
+                <div className="relative w-full h-full p-4 flex items-center justify-center" onClick={() => setIsPreviewOpen(false)}>
+                  <img src={avatarUrl} alt="Full Avatar" className="max-w-full max-h-full object-contain rounded-md shadow-2xl animate-in zoom-in-95 duration-300" />
                 </div>
               </DialogContent>
             </Dialog>
 
-            {/* USER INFO */}
             <div className="flex-1 pb-2 text-center md:text-left space-y-0.5">
               <h1 className="text-3xl font-bold text-white drop-shadow-md">Nguyễn Văn User</h1>
               <div className="flex items-center justify-center md:justify-start gap-3 text-zinc-400 text-sm">
@@ -205,8 +186,6 @@ export default function AccountPage() {
                 <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Thái Nguyên</span>
               </div>
             </div>
-
-            {/* BADGE */}
             <div className="pb-3 hidden md:block">
               <Badge className="bg-indigo-500/10 text-indigo-300 border-indigo-500/30 px-3 py-1 text-xs backdrop-blur-md">
                 <ShieldCheck className="h-3 w-3 mr-1" /> Verified
@@ -214,10 +193,7 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* GRID INFO */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
-
-            {/* Cột 1: Thông tin cá nhân */}
             <Card className={cn("lg:col-span-2", glassCard)}>
               <CardHeader className="pb-3 pt-4 px-5 border-b border-white/5">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
@@ -230,17 +206,12 @@ export default function AccountPage() {
                   <InfoItem label="Số điện thoại" value="0987654321" icon={<Phone className="h-3.5 w-3.5"/>} />
                   <InfoItem label="Email" value="user@batek.vn" icon={<Mail className="h-3.5 w-3.5"/>} />
                   <div className="md:col-span-2">
-                    <InfoItem
-                      label="Địa chỉ"
-                      value="16 Ngõ 21 Đường Chu Văn An, Hàng Văn Thụ, Thành phố Thái Nguyên, Thái Nguyên"
-                      icon={<MapPin className="h-3.5 w-3.5 "/>}
-                    />
+                    <InfoItem label="Địa chỉ" value="16 Ngõ 21 Đường Chu Văn An, Hàng Văn Thụ, Thành phố Thái Nguyên, Thái Nguyên" icon={<MapPin className="h-3.5 w-3.5 "/>} />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Cột 2: Hệ thống */}
             <Card className={glassCard}>
               <CardHeader className="pb-3 pt-4 px-5 border-b border-white/5">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
@@ -257,7 +228,6 @@ export default function AccountPage() {
                     </div>
                   </div>
                 </div>
-
                 <div className="flex items-center justify-between p-2.5 rounded-md bg-white/5 border border-white/5">
                   <div className="flex items-center gap-3">
                     <div className="p-1.5 bg-blue-500/20 rounded text-blue-400"><Calendar className="h-4 w-4" /></div>
@@ -267,7 +237,6 @@ export default function AccountPage() {
                     </div>
                   </div>
                 </div>
-
                 <div className="pt-1 flex items-center justify-center gap-2 text-xs text-zinc-500">
                   <Clock className="h-3 w-3" />
                   <span>Login cuối: 09:30 AM</span>
@@ -275,7 +244,6 @@ export default function AccountPage() {
               </CardContent>
             </Card>
           </div>
-
         </div>
       </div>
     );
@@ -286,7 +254,6 @@ export default function AccountPage() {
     return (
       <div className="w-full h-full flex items-center justify-center p-4 bg-[#050505] animate-in fade-in zoom-in-95 duration-200">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/10 to-purple-900/10 pointer-events-none" />
-
         <Card className={cn("w-full max-w-xl relative z-10", glassCard)}>
           <CardHeader className="border-b border-white/10 pb-3 pt-4">
             <div className="flex items-center justify-between">
@@ -329,7 +296,7 @@ export default function AccountPage() {
     );
   }
 
-  // --- 3. CHANGE PASSWORD MODE ---
+  // --- 3. CHANGE PASSWORD MODE (ĐÃ CẬP NHẬT) ---
   if (viewMode === 'CHANGE_PASSWORD') {
     return (
       <div className="w-full h-full flex items-center justify-center p-4 bg-[#050505] animate-in fade-in zoom-in-95 duration-200">
@@ -344,30 +311,84 @@ export default function AccountPage() {
             </div>
           </CardHeader>
           <CardContent className="grid gap-4 pt-5 px-6 pb-6">
+
+            {/* Ô Mật khẩu hiện tại */}
             <div className="grid gap-1.5">
-              <div className="flex justify-between items-center">
-                <Label className="text-zinc-300 text-xs uppercase">Mật khẩu hiện tại</Label>
-                {/*<Link href="/forgot-password" className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 hover:underline">*/}
-                {/*  <HelpCircle className="h-3 w-3" /> Quên mật khẩu?*/}
-                {/*</Link>*/}
+              <Label className="text-zinc-300 text-xs uppercase flex items-center gap-1">
+                Mật khẩu hiện tại <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  type={showPass.current ? 'text' : 'password'}
+                  className={inputStyle}
+                  value={passwords.current}
+                  onChange={(e) => setPasswords({...passwords, current: e.target.value})}
+                  placeholder="Nhập mật khẩu hiện tại"
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleShow('current')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
+                >
+                  {showPass.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-              <Input type="password" className={inputStyle} />
             </div>
 
             <div className="grid grid-cols-1 gap-4">
+              {/* Ô Mật khẩu mới */}
               <div className="grid gap-1.5">
-                <Label className="text-zinc-300 text-xs uppercase">Mật khẩu mới</Label>
-                <Input type="password" className={inputStyle} />
+                <Label className="text-zinc-300 text-xs uppercase flex items-center gap-1">
+                  Mật khẩu mới <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showPass.new ? 'text' : 'password'}
+                    className={inputStyle}
+                    value={passwords.new}
+                    onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+                    placeholder="Nhập mật khẩu mới"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toggleShow('new')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
+                  >
+                    {showPass.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
+
+              {/* Ô Xác nhận mật khẩu mới */}
               <div className="grid gap-1.5">
-                <Label className="text-zinc-300 text-xs uppercase">Xác nhận mật khẩu</Label>
-                <Input type="password" className={inputStyle} />
+                <Label className="text-zinc-300 text-xs uppercase flex items-center gap-1">
+                  Xác nhận mật khẩu <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showPass.confirm ? 'text' : 'password'}
+                    className={inputStyle}
+                    value={passwords.confirm}
+                    onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+                    placeholder="Nhập lại mật khẩu mới"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toggleShow('confirm')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
+                  >
+                    {showPass.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="flex justify-end pt-2 gap-2">
-              <Button variant="ghost" onClick={() => setViewMode('VIEW')} className="text-zinc-400 hover:text-white">Hủy</Button>
-              <Button className="bg-orange-600 hover:bg-orange-500 text-white shadow-md shadow-orange-500/20">
+              <Button variant="ghost" onClick={() => { setViewMode('VIEW'); setPasswords({current: '', new: '', confirm: ''}); }} className="text-zinc-400 hover:text-white">Hủy</Button>
+              <Button
+                onClick={handleChangePassword}
+                className="bg-orange-600 hover:bg-orange-500 text-white shadow-md shadow-orange-500/20"
+              >
                 Cập nhật
               </Button>
             </div>
@@ -383,20 +404,14 @@ export default function AccountPage() {
 // --- Component Info Item ---
 const InfoItem = ({ label, value, icon }: { label: string, value: string, icon?: React.ReactNode }) => {
   return (
-    <div className="flex items-start gap-3 py-1"> {/* items-start: để icon neo ở dòng đầu */}
-
-      {/* Icon */}
+    <div className="flex items-start gap-3 py-1">
       {icon && (
         <div className="mt-0.5 shrink-0 text-muted-foreground">
           {icon}
         </div>
       )}
-
-      {/* Nội dung */}
-      <div className="flex flex-col gap-1 min-w-0 flex-1"> {/* min-w-0 và flex-1 là chìa khóa */}
+      <div className="flex flex-col gap-1 min-w-0 flex-1">
         <span className="text-xs text-muted-foreground font-medium">{label}</span>
-
-        {/* break-words: Tự xuống dòng khi chữ quá dài */}
         <span className="text-sm font-medium text-foreground whitespace-normal break-words leading-snug">
           {value}
         </span>
