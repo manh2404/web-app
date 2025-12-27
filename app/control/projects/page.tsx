@@ -8,10 +8,11 @@
     Plus, Search, LayoutGrid, MoreHorizontal, Users, RefreshCcw
   } from 'lucide-react';
 
+  import { useRouter } from "next/navigation";
   import { Button } from '@/components/ui/button';
   import { Input } from '@/components/ui/input';
   import { Separator } from '@/components/ui/separator';
-  import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+  import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
   import { Badge } from '@/components/ui/badge';
   import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
   import { cn } from '@/lib/utils';
@@ -32,6 +33,8 @@
     dueDate: string;
   }
 
+
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'In Progress': return 'default';
@@ -45,6 +48,7 @@
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const router = useRouter();
 
     // Hàm fetch dữ liệu dùng chung
     const fetchProjects = async (showLoading = true) => {
@@ -113,7 +117,7 @@
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Tìm dự án thật..."
+                placeholder="Tìm dự án..."
                 className={cn("pl-9", glassInputClass)}
               />
             </div>
@@ -132,17 +136,35 @@
             <p className="text-green-50 animate-pulse font-medium">Đang kết nối...</p>
           ) : (
             projects.map((project) => (
-              <Card key={project._id || project.id} className={cn("group cursor-pointer", glassCardClass)}>
+              <Card
+                key={project._id || project.id}
+
+                // 4. THÊM SỰ KIỆN CHUYỂN TRANG Ở ĐÂY
+                onClick={() => router.push(`/control/projects/${project._id || project.id}/workitems`)}
+
+                className={cn("group cursor-pointer hover:border-indigo-500/50 transition-all", glassCardClass)}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant={getStatusColor(project.status) as any} className="backdrop-blur-md">
                       {project.status}
                     </Badge>
-                    <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" asChild>
+
+                    {/* 5. NÚT SETTINGS (3 chấm) */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity z-10" // Thêm z-10 để chắc chắn nó nổi lên
+                      asChild
+                      // 6. QUAN TRỌNG: Chặn click xuyên thấu
+                      // Nếu không có dòng này, ấn vào đây nó vừa mở settings vừa nhảy trang workitems
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Link href={`/control/projects/${project._id || project.id}/settings`}>
                         <MoreHorizontal className="h-4 w-4" />
                       </Link>
                     </Button>
+
                   </div>
                   <CardTitle className="text-lg font-bold line-clamp-1 group-hover:text-green-400 transition-colors">
                     {project.title}
