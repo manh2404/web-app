@@ -7,12 +7,13 @@ import Attachment from "@/models/attachment.model";
 // Hàm xử lý DELETE /api/files/:id
 export const DELETE = async (
   req: Request,
-  { params }: { params: { id: string } } // Lấy ID từ URL
+  { params }: { params: Promise<{ id: string }> } // Lấy ID từ URL
 ) => {
   try {
     await dbConnect();
 
-    const fileId = params.id;
+    const { id } = await params;
+    const fileId = id;
 
     // 1. Tìm file trong Database
     const fileRecord = await Attachment.findById(fileId);
