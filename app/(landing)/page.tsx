@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import Image from 'next/image'; // 👈 1. Import thêm cái này
+import Image from 'next/image';
 
 const greetings = ["Xin chào", "Welcome"];
 
