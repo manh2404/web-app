@@ -9,8 +9,7 @@ import { GetConfig } from '@/lib/services/config.service';
 import { ThemeProvider } from '@/components/theme-provider';
 import LangLayout from '@/app/lang';
 
-// [MỚI] Import component hiệu ứng nền
-import { BackgroundEffect } from '@/components/background-effect';
+// [ĐÃ XÓA] Import BackgroundEffect để bỏ hiệu ứng nhấp nháy
 
 export const dynamic = 'force-dynamic';
 
@@ -38,23 +37,17 @@ export default async function RootLayout({
   children: ReactNode;
 }>) {
   const config: IConfig = await GetConfig();
+
   return (
     <html lang="vi" suppressHydrationWarning>
-    {/* [SỬA] Thêm class 'bg-[#020617] text-white min-h-screen relative' để chuẩn bị cho nền tối */}
-    <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#020617] text-white min-h-screen relative`}>
 
-    {/* [MỚI] Đặt hiệu ứng nền ở đây (nó sẽ tự nằm chìm xuống dưới nhờ z-index -50) */}
-    <BackgroundEffect />
+    <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen`}>
 
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-
-      {/* [MỚI] Bọc nội dung chính trong div relative z-10 để đảm bảo nội dung nổi lên trên nền */}
-      <div className="relative z-10 h-full">
-        <Toaster />
-        <AppContextProvider config={config}>
-          <LangLayout>{children}</LangLayout>
-        </AppContextProvider>
-      </div>
+      <Toaster />
+      <AppContextProvider config={config}>
+        <LangLayout>{children}</LangLayout>
+      </AppContextProvider>
 
     </ThemeProvider>
     </body>

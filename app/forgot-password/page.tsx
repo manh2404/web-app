@@ -1,106 +1,15 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Import router
-import { Mail, Phone, ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React from 'react';
+import { AuthLayout } from '@/components/auth/auth-layout';
+import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
-  const [inputValue, setInputValue] = useState('');
-  const [inputType, setInputType] = useState<'email' | 'phone'>('email');
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const phoneRegex = /^[0-9+]+$/;
-    if (phoneRegex.test(inputValue) && inputValue.length > 0) {
-      setInputType('phone');
-    } else {
-      setInputType('email');
-    }
-  }, [inputValue]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    // Giả lập gọi API gửi mã
-    setTimeout(() => {
-      setIsLoading(false);
-      // Chuyển hướng sang trang OTP, kèm theo thông tin user vừa nhập
-      const encodedTarget = encodeURIComponent(inputValue);
-      router.push(`/forgot-password/verify?target=${encodedTarget}`);
-    }, 1500);
-  };
-
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#050505] p-4">
-      {/* BACKGROUND GIỮ NGUYÊN */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/30 blur-[120px] rounded-full animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/30 blur-[120px] rounded-full animate-pulse delay-700" />
-
-      <Card className="w-full max-w-md border-white/20 bg-white/10 backdrop-blur-md shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] relative z-10">
-        <CardHeader className="text-center space-y-2 pb-6">
-          <div className="mx-auto w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-2 shadow-inner">
-            {inputType === 'phone' ? <Phone className="h-6 w-6 text-white" /> : <Mail className="h-6 w-6 text-white" />}
-          </div>
-          <CardTitle className="text-3xl font-bold tracking-tight text-white">
-            Quên mật khẩu?
-          </CardTitle>
-          <CardDescription className="text-base text-zinc-100 font-medium">
-            Nhập <strong>email</strong> hoặc <strong>số điện thoại</strong> đã đăng ký. Chúng tôi sẽ gửi mã OTP cho bạn.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="contact" className="text-white font-semibold pl-1">
-                Email hoặc Số điện thoại
-              </Label>
-              <div className="relative group">
-                <div className="absolute left-3 top-3 h-5 w-5 text-white/70 group-focus-within:text-indigo-300 transition-colors">
-                  {inputType === 'phone' ? <Phone className="h-5 w-5" /> : <Mail className="h-5 w-5" />}
-                </div>
-                <Input
-                  id="contact"
-                  type="text"
-                  placeholder="name@example.com hoặc 0912..."
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  className="pl-10 bg-white/20 border-white/30 focus:border-indigo-400 focus:ring-indigo-400/30 h-12 text-white placeholder:text-white/60 rounded-xl transition-all shadow-sm"
-                  required
-                />
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-12 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-indigo-500/30 transition-all active:scale-[0.98]"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Đang gửi...</>
-              ) : (
-                "Gửi yêu cầu"
-              )}
-            </Button>
-
-            <div className="text-center">
-              <Link
-                href="/login"
-                className="inline-flex items-center text-sm text-indigo-200 hover:text-white font-medium transition-colors hover:underline underline-offset-4"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại đăng nhập
-              </Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <AuthLayout
+      title="Khôi phục tài khoản"
+      subtitle="Đừng lo lắng, chúng tôi sẽ giúp bạn lấy lại quyền truy cập."
+      size="small"
+    >
+      <ForgotPasswordForm />
+    </AuthLayout>
   );
 }
