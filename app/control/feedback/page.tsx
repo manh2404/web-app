@@ -47,12 +47,13 @@ export default function FeedbackPage() {
     setContent('');
   };
 
-  // Class kính mờ cho Form
-  const glassCardClass = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border-white/20 shadow-sm border";
-
   return (
     <div className={cn(
       "flex flex-col h-full w-full space-y-6 p-6 overflow-y-auto relative",
+      // Light Mode Background: Mặc định
+      "bg-zinc-50/50",
+      // Dark Mode Background: Đen sâu
+      "dark:bg-[#0a0a0a]",
       // Custom Scrollbar
       "[&::-webkit-scrollbar]:w-2",
       "[&::-webkit-scrollbar-track]:bg-transparent",
@@ -66,13 +67,20 @@ export default function FeedbackPage() {
       {isLoading && <GlobalLoading />}
 
       {/* --- HERO BANNER --- */}
-      <div className="relative text-center py-10 px-6 rounded-2xl bg-gradient-to-br from-red-600 to-indigo-600 shadow-lg text-white shrink-0">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">
-          Gửi phản hồi
-        </h1>
-        <p className="text-blue-100 max-w-xl mx-auto">
-          Ý kiến của bạn giúp chúng tôi cải thiện Batek System tốt hơn mỗi ngày.
-        </p>
+      <div className="relative text-center py-12 px-6 rounded-3xl bg-gradient-to-br from-orange-500 to-amber-600 dark:from-orange-600 dark:to-amber-700 shadow-xl text-white shrink-0 overflow-hidden">
+        {/* Họa tiết trang trí mờ */}
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        <div className="absolute -top-24 -left-24 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-black/10 rounded-full blur-3xl"></div>
+
+        <div className="relative z-10">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-3 drop-shadow-md">
+            Gửi phản hồi
+          </h1>
+          <p className="text-orange-50 dark:text-orange-100/80 max-w-xl mx-auto text-sm md:text-base font-medium">
+            Ý kiến của bạn giúp Batek System tốt hơn mỗi ngày.
+          </p>
+        </div>
       </div>
 
       {/* --- MAIN CONTENT (Form) --- */}
@@ -80,73 +88,83 @@ export default function FeedbackPage() {
 
         {isSubmitted ? (
           // --- MÀN HÌNH THÀNH CÔNG ---
-          <Card className="border-green-500/20 bg-green-50/50 dark:bg-green-900/10 backdrop-blur-md">
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center space-y-4">
-              <div className="h-16 w-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-2">
-                <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+          <Card className="border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900/50 backdrop-blur-md shadow-lg">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center space-y-5">
+              <div className="h-20 w-20 bg-emerald-100 dark:bg-emerald-900/40 rounded-full flex items-center justify-center mb-2 shadow-inner">
+                <CheckCircle2 className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <h2 className="text-2xl font-bold">Cảm ơn phản hồi của bạn!</h2>
-              <p className="text-muted-foreground max-w-md">
-                Chúng tôi đã nhận được thông tin và sẽ xem xét trong thời gian sớm nhất.
-              </p>
-              <Button onClick={handleReset} variant="outline" className="mt-4 bg-white/40 hover:bg-white/60">
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Cảm ơn bạn!</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 mt-2 max-w-xs mx-auto">
+                  Chúng tôi đã nhận được thông tin và sẽ xem xét sớm nhất.
+                </p>
+              </div>
+              <Button onClick={handleReset} variant="outline" className="mt-4 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50">
                 Gửi phản hồi khác
               </Button>
             </CardContent>
           </Card>
         ) : (
-          // --- FORM NHẬP LIỆU (GLASS STYLE) ---
-          <Card className={glassCardClass}>
-            <CardHeader>
-              <CardTitle>Nội dung chi tiết</CardTitle>
-              <CardDescription className="text-muted-foreground/80">Vui lòng điền đầy đủ thông tin bên dưới.</CardDescription>
+          // --- FORM NHẬP LIỆU ---
+          <Card className={cn(
+            "border shadow-sm transition-all",
+            // Light: Trắng, sạch sẽ
+            "bg-white border-zinc-200",
+            // Dark: Xám tối, viền rõ ràng
+            "dark:bg-[#121214] dark:border-zinc-800"
+          )}>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-bold text-zinc-900 dark:text-white">Nội dung chi tiết</CardTitle>
+              <CardDescription className="text-zinc-500 dark:text-zinc-400">Vui lòng điền đầy đủ thông tin bên dưới.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-8">
 
               {/* 1. Chọn cảm xúc */}
-              <div className="space-y-3">
-                <Label>Bạn cảm thấy thế nào về trải nghiệm hôm nay?</Label>
-                <div className="flex justify-center gap-4 py-2">
+              <div className="space-y-4">
+                <Label className="text-zinc-700 dark:text-zinc-300">Bạn cảm thấy thế nào?</Label>
+                <div className="flex justify-center gap-6">
                   {[
-                    { value: 'bad', icon: Frown, color: 'hover:text-red-500 hover:bg-red-50/80 text-muted-foreground', active: 'text-red-500 bg-red-100 dark:bg-red-900/30 ring-1 ring-red-500' },
-                    { value: 'neutral', icon: Meh, color: 'hover:text-yellow-500 hover:bg-yellow-50/80 text-muted-foreground', active: 'text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30 ring-1 ring-yellow-500' },
-                    { value: 'good', icon: Smile, color: 'hover:text-green-500 hover:bg-green-50/80 text-muted-foreground', active: 'text-green-500 bg-green-100 dark:bg-green-900/30 ring-1 ring-green-500' },
+                    { value: 'bad', icon: Frown, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-900' },
+                    { value: 'neutral', icon: Meh, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200 dark:border-amber-900' },
+                    { value: 'good', icon: Smile, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200 dark:border-emerald-900' },
                   ].map((item) => (
                     <button
                       key={item.value}
                       onClick={() => setRating(item.value)}
                       className={cn(
-                        "p-3 rounded-2xl transition-all duration-200 scale-100 active:scale-105",
-                        rating === item.value ? item.active : `bg-muted/50 ${item.color}`
+                        "p-4 rounded-2xl transition-all duration-300 transform border-2",
+                        rating === item.value
+                          ? `${item.bg} ${item.border} scale-110 shadow-md`
+                          : "bg-transparent border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 scale-100 opacity-60 hover:opacity-100"
                       )}
                     >
-                      <item.icon className="h-8 w-8" />
+                      <item.icon className={cn("h-10 w-10 transition-colors", rating === item.value ? item.color : "text-zinc-400 dark:text-zinc-500")} />
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* 2. Chọn loại phản hồi */}
-              <div className="space-y-3">
-                <Label>Loại phản hồi</Label>
-                <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-4">
+                <Label className="text-zinc-700 dark:text-zinc-300">Loại phản hồi</Label>
+                <div className="grid grid-cols-3 gap-4">
                   {[
-                    { id: 'bug', label: 'Báo lỗi', icon: Bug },
-                    { id: 'feature', label: 'Tính năng', icon: Lightbulb },
-                    { id: 'general', label: 'Chung', icon: MessageSquare },
+                    { id: 'bug', label: 'Báo lỗi', icon: Bug, activeColor: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800' },
+                    { id: 'feature', label: 'Tính năng', icon: Lightbulb, activeColor: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800' },
+                    { id: 'general', label: 'Chung', icon: MessageSquare, activeColor: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800' },
                   ].map((item) => (
                     <div
                       key={item.id}
                       onClick={() => setCategory(item.id)}
                       className={cn(
-                        "flex flex-col items-center justify-center p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50",
+                        "flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 h-24 gap-2",
                         category === item.id
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600"
-                          : "border-border/50 bg-white/40 dark:bg-black/20 text-muted-foreground hover:bg-white/60"
+                          ? `${item.activeColor} shadow-sm font-semibold`
+                          : "border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800"
                       )}
                     >
-                      <item.icon className="h-5 w-5 mb-1" />
-                      <span className="text-xs font-medium">{item.label}</span>
+                      <item.icon className="h-6 w-6" />
+                      <span className="text-xs">{item.label}</span>
                     </div>
                   ))}
                 </div>
@@ -154,11 +172,17 @@ export default function FeedbackPage() {
 
               {/* 3. Nội dung text */}
               <div className="space-y-3">
-                <Label htmlFor="message">Mô tả chi tiết <span className="text-red-500">*</span></Label>
+                <Label htmlFor="message" className="text-zinc-700 dark:text-zinc-300">Mô tả chi tiết <span className="text-red-500">*</span></Label>
                 <Textarea
                   id="message"
                   placeholder="Hãy kể cho chúng tôi nghe..."
-                  className="min-h-[120px] resize-none bg-white/40 dark:bg-black/20 border-white/20 focus-visible:ring-blue-500/50"
+                  className={cn(
+                    "min-h-[140px] resize-none text-base p-4",
+                    // Light
+                    "bg-zinc-50 border-zinc-200 text-zinc-900 focus-visible:ring-orange-500",
+                    // Dark
+                    "dark:bg-[#1a1a1d] dark:border-zinc-800 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus-visible:ring-orange-500"
+                  )}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                 />
@@ -166,28 +190,34 @@ export default function FeedbackPage() {
 
               {/* 4. Đính kèm file */}
               <div className="space-y-3">
-                <Label>Đính kèm hình ảnh (Tùy chọn)</Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 flex flex-col items-center justify-center text-center hover:bg-white/20 dark:hover:bg-white/5 transition-colors cursor-pointer group bg-white/10">
-                  <div className="h-10 w-10 bg-muted/50 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                    <Paperclip className="h-5 w-5 text-muted-foreground" />
+                <Label className="text-zinc-700 dark:text-zinc-300">Đính kèm (Tùy chọn)</Label>
+                <div className={cn(
+                  "border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all group",
+                  // Light
+                  "border-zinc-200 hover:border-orange-400 hover:bg-orange-50/50",
+                  // Dark
+                  "dark:border-zinc-800 dark:hover:border-orange-500/50 dark:hover:bg-orange-500/5"
+                )}>
+                  <div className="h-12 w-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <Paperclip className="h-6 w-6 text-zinc-400 dark:text-zinc-500 group-hover:text-orange-500 transition-colors" />
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Kéo thả hoặc <span className="text-blue-500 font-medium">bấm để tải lên</span>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 font-medium">
+                    Kéo thả hoặc <span className="text-orange-600 dark:text-orange-500">bấm để tải lên</span>
                   </p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG (Max 5MB)</p>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">PNG, JPG (Max 5MB)</p>
                 </div>
               </div>
 
               {/* Submit Button */}
               <Button
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 h-11 text-base border-0"
+                className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-lg shadow-orange-500/20 h-12 text-base font-bold rounded-xl border-0"
                 onClick={handleSubmit}
                 disabled={!content.trim() || isLoading}
               >
                 {isLoading ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang gửi...</>
+                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Đang gửi...</>
                 ) : (
-                  <><Send className="mr-2 h-4 w-4" /> Gửi phản hồi</>
+                  <><Send className="mr-2 h-5 w-5" /> Gửi phản hồi</>
                 )}
               </Button>
 

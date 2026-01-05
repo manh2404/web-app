@@ -102,7 +102,7 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
           <Collapsible defaultOpen className="flex flex-col h-full group/workspace">
             {/* TIÊU ĐỀ DỰ ÁN (Cố định) */}
             <div className="flex-shrink-0 px-4 py-2 flex items-center justify-between group hover:bg-white/5 mx-2 rounded-md mt-2 transition-colors">
-              <CollapsibleTrigger className="flex items-center cursor-pointer text-zinc-200 group-hover:text-white transition-colors flex-1">
+              <CollapsibleTrigger className="flex items-center cursor-pointer transition-colors flex-1 text-zinc-700 dark:text-zinc-200 hover:text-orange-600 dark:hover:text-orange-500">
                 <span className="text-xs font-bold uppercase tracking-wider select-none">
                   Dự Án
                 </span>
@@ -131,9 +131,15 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton
                           className={cn(
-                            "hover:bg-white/5 cursor-pointer pr-16 h-9",
-                            // Highlight nếu đang xem dự án này
-                            project.id === currentProjectId && "bg-white/10 text-indigo-400"
+                            "cursor-pointer pr-16 h-9 transition-all duration-200",
+                            // [DEFAULT STATE]
+                            // Light: Hover nền xám nhạt, chữ đen
+                            // Dark: Hover nền trắng mờ, chữ trắng
+                            "hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-700 dark:text-zinc-200",
+
+                            // [ACTIVE STATE - ĐANG XEM] -> MÀU CAM
+                            project.id === currentProjectId &&
+                            "bg-orange-50 text-orange-600 font-bold dark:bg-orange-500/10 dark:text-orange-500"
                           )}
                         >
                           <span className="text-base">{project.icon}</span>
@@ -141,47 +147,58 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
 
-                      {/* Dropdown Menu 3 chấm */}
+                      {/* Dropdown Menu 3 chấm & Mũi tên */}
                       <div className="absolute right-1.5 top-0 bottom-0 flex items-center gap-0.5 opacity-0 group-hover/project:opacity-100 transition-opacity z-10">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <SidebarMenuAction className="hover:bg-white/10 h-7 w-7 flex items-center justify-center rounded-md transition-colors mr-8" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                              <MoreHorizontal className="size-4 text-white/50" />
+                            {/* Nút 3 chấm: Hover ra màu cam hoặc đậm hơn */}
+                            <SidebarMenuAction className="h-7 w-7 flex items-center justify-center rounded-md transition-colors mr-8 hover:bg-zinc-200 dark:hover:bg-white/10 text-zinc-500 dark:text-zinc-400" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                              <MoreHorizontal className="size-4" />
                             </SidebarMenuAction>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" side="right" className="w-48 bg-zinc-900/95 border-white/10 text-white backdrop-blur-xl rounded-xl shadow-2xl">
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer focus:bg-white/10 py-2.5" onClick={() => { const link = `${window.location.origin}/control/projects/${project.id}`; navigator.clipboard.writeText(link); alert("Đã sao chép liên kết dự án!"); }}>
+
+                          {/* Dropdown Content: Nền Trắng (Light) / Đen (Dark) */}
+                          <DropdownMenuContent align="end" side="right" className="w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-xl shadow-xl p-1">
+                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer focus:bg-orange-50 focus:text-orange-600 dark:focus:bg-white/10 dark:focus:text-orange-500 py-2.5 rounded-lg" onClick={() => { const link = `${window.location.origin}/control/projects/${project.id}`; navigator.clipboard.writeText(link); alert("Đã sao chép liên kết dự án!"); }}>
                               <LinkIcon className="size-4 opacity-70" /><span>Sao chép liên kết</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer focus:bg-white/10 py-2.5" asChild>
+                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer focus:bg-orange-50 focus:text-orange-600 dark:focus:bg-white/10 dark:focus:text-orange-500 py-2.5 rounded-lg" asChild>
                               <Link href={`/control/projects/${project.id}/settings`}><Settings2 className="size-4 opacity-70" /><span>Cài đặt</span></Link>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
 
+                        {/* Mũi tên mở rộng */}
                         <CollapsibleTrigger asChild>
-                          <SidebarMenuAction className="h-7 w-7 flex items-center justify-center hover:bg-white/10 rounded-md transition-all data-[state=open]:rotate-90">
-                            <ChevronRight className="size-3.5 text-white/50" />
+                          <SidebarMenuAction className="h-7 w-7 flex items-center justify-center rounded-md transition-all data-[state=open]:rotate-90 hover:bg-zinc-200 dark:hover:bg-white/10 text-zinc-500 dark:text-zinc-400">
+                            <ChevronRight className="size-3.5" />
                           </SidebarMenuAction>
                         </CollapsibleTrigger>
                       </div>
 
                       <CollapsibleContent>
-                        <SidebarMenuSub className="border-l border-white/10 ml-4">
+                        {/* Đường kẻ dọc: Xám nhạt (Light) / Xám tối (Dark) */}
+                        <SidebarMenuSub className="border-l border-zinc-200 dark:border-white/10 ml-4">
 
-                          {/* --- LINK WORK ITEMS (Đã bao gồm ID dự án) --- */}
+                          {/* --- LINK WORK ITEMS --- */}
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton asChild>
-                              <Link href={`/control/projects/${project.id}/workitems`} className="flex items-center gap-2">
+                              <Link
+                                href={`/control/projects/${project.id}/workitems`}
+                                className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-orange-600 dark:hover:text-orange-500 transition-colors"
+                              >
                                 <SquareKanban className="size-3.5" /><span>WorkItem</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
 
-                          {/* --- LINK STATISTICS (Đã bao gồm ID dự án) --- */}
+                          {/* --- LINK STATISTICS --- */}
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton asChild>
-                              <Link href={`/control/projects/${project.id}/statistics`} className="flex items-center gap-2">
+                              <Link
+                                href={`/control/projects/${project.id}/statistics`}
+                                className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-orange-600 dark:hover:text-orange-500 transition-colors"
+                              >
                                 <PieChart className="size-3.5" /><span>Thống kê</span>
                               </Link>
                             </SidebarMenuSubButton>
@@ -194,7 +211,7 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
                 ))}
 
                 {projects.length === 0 && (
-                  <div className="text-[10px] text-zinc-300 px-4 py-2 italic text-center opacity-70">
+                  <div className="text-[10px] text-zinc-400 dark:text-zinc-500 px-4 py-2 italic text-center opacity-70">
                     Đang load dự án...
                   </div>
                 )}

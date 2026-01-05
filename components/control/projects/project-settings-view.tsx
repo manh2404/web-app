@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -20,6 +19,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { cn } from '@/lib/utils';
 
 // --- MOCK DATA ---
 const MOCK_SYSTEM_USERS = [
@@ -41,8 +41,6 @@ export function ProjectSettingsView({ projectId }: { projectId: string }) {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [project, setProject] = useState<any>(null);
-
-  // [FIX] Khởi tạo loading là true, nhưng giao diện sẽ dùng Skeleton hoặc check null an toàn hơn
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -68,12 +66,11 @@ export function ProjectSettingsView({ projectId }: { projectId: string }) {
           ]
         });
         setLoading(false);
-      }, 500); // Giảm thời gian load để test nhanh
+      }, 500);
     };
     fetchProject();
   }, [projectId]);
 
-  // Các hàm xử lý giữ nguyên...
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'cover' | 'avatar') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -114,39 +111,23 @@ export function ProjectSettingsView({ projectId }: { projectId: string }) {
 
   const availableUsers = MOCK_SYSTEM_USERS.filter(u => !project?.members?.some((m: any) => m._id === u._id));
 
-  // [FIX] Scrollbar Style
-  const scrollbarStyles = `
-    overflow-y-auto 
-    pr-2
-    [&::-webkit-scrollbar]:w-[6px] 
-    [&::-webkit-scrollbar-track]:bg-transparent 
-    [&::-webkit-scrollbar-thumb]:bg-zinc-800 
-    [&::-webkit-scrollbar-thumb]:rounded-full 
-    hover:[&::-webkit-scrollbar-thumb]:bg-zinc-700
-  `;
-
   return (
-    // [FIX] Container chính: Đảm bảo full chiều cao và flex column
-    <div className="absolute inset-4 flex flex-col bg-background text-foreground overflow-hidden rounded-xl border border-border shadow-sm">
-
-      {/* Background Gradients (Cam) */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-500/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-orange-600/10 blur-[120px] rounded-full pointer-events-none" />
+    <div className="flex flex-col h-full w-full bg-zinc-50 dark:bg-[#0a0a0a] text-zinc-900 dark:text-white relative overflow-hidden">
 
       <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'cover')} />
       <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'avatar')} />
 
-      {/* HEADER */}
-      <div className="flex-none flex items-center h-14 px-6 border-b border-white/5 bg-black/40 backdrop-blur-xl z-20 justify-between">
+      {/* HEADER - Solid */}
+      <div className="flex-none flex items-center h-12 px-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0a0a0a] z-20 justify-between">
         <div className="flex items-center">
-          <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2 text-zinc-400 hover:text-white h-8 hover:bg-white/5">
+          <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 h-8 px-2">
             <ArrowLeft className="h-4 w-4" /> <span className="text-xs font-medium">Quay lại</span>
           </Button>
-          <div className="h-4 w-[1px] bg-white/10 mx-4" />
-          <h1 className="text-xs font-bold tracking-[0.2em] text-orange-500 uppercase">Cài đặt dự án</h1>
+          <div className="h-4 w-[1px] bg-zinc-200 dark:bg-zinc-800 mx-3" />
+          <h1 className="text-xs font-bold tracking-[0.1em] text-orange-600 dark:text-orange-500 uppercase">Cài đặt</h1>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="bg-orange-600 hover:bg-orange-700 text-white h-8 px-4 rounded-lg shadow-lg gap-2 text-[10px] font-bold uppercase tracking-wide">
-          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} LƯU THAY ĐỔI
+        <Button onClick={handleSave} disabled={saving} className="bg-orange-600 hover:bg-orange-700 text-white h-7 px-3 rounded shadow-sm gap-2 text-[10px] font-bold uppercase tracking-wide border-0">
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} LƯU
         </Button>
       </div>
 
@@ -154,90 +135,108 @@ export function ProjectSettingsView({ projectId }: { projectId: string }) {
       <div className="flex flex-1 overflow-hidden z-10">
 
         {/* SIDEBAR */}
-        <div className="flex-none w-64 border-r border-white/5 p-4 flex flex-col bg-black/20 backdrop-blur-sm h-full">
-          <div className="space-y-2">
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-3 mt-2">Menu</p>
-            <button onClick={() => setActiveTab('general')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'general' ? 'bg-white/5 text-orange-400 border border-white/5 shadow-inner' : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300'}`}>
-              <Settings2 className="h-4 w-4" /> Chung
+        <div className="flex-none w-56 border-r border-zinc-200 dark:border-zinc-800 p-3 flex flex-col bg-white dark:bg-[#0c0c0c] h-full">
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest px-2 mb-2 mt-1">Menu</p>
+            <button onClick={() => setActiveTab('general')} className={cn("w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-all", activeTab === 'general' ? "bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-500 border border-orange-200 dark:border-orange-500/20" : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200")}>
+              <Settings2 className="h-3.5 w-3.5" /> Chung
             </button>
-            <button onClick={() => setActiveTab('members')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'members' ? 'bg-white/5 text-orange-400 border border-white/5 shadow-inner' : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300'}`}>
-              <Users className="h-4 w-4" /> Thành viên
+            <button onClick={() => setActiveTab('members')} className={cn("w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-all", activeTab === 'members' ? "bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-500 border border-orange-200 dark:border-orange-500/20" : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200")}>
+              <Users className="h-3.5 w-3.5" /> Thành viên
             </button>
           </div>
-          <div className="mt-auto pt-4 border-t border-white/5">
-            <div className="bg-white/[0.03] p-3 rounded-lg border border-white/5">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Trạng thái dự án</p>
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+          <div className="mt-auto pt-3 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="bg-zinc-50 dark:bg-[#151515] p-2 rounded border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase">Trạng thái</span>
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span className="text-xs font-bold text-green-400 uppercase tracking-wide">Active</span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Active</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* MAIN CONTENT */}
-        <div className="flex-1 flex flex-col min-w-0 bg-transparent overflow-hidden">
-          {/* [FIX] Kiểm tra loading: Nếu đang load thì hiện spinner, ngược lại hiện content */}
+        {/* MAIN CONTENT AREA */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 scroll-smooth min-h-0 bg-zinc-50 dark:bg-[#0a0a0a]">
           {loading ? (
             <div className="h-full w-full flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+              <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
             </div>
           ) : (
-            <div className={`flex-1 ${scrollbarStyles} p-8 md:p-12`}>
-
-              {/* --- TAB: GENERAL --- */}
+            <>
+              {/* --- TAB: GENERAL (NO-FRAME STYLE) --- */}
               {activeTab === 'general' && (
-                <div className="max-w-3xl mx-auto pb-20 animate-in fade-in duration-500 slide-in-from-bottom-4">
-                  <Card className="bg-[#09090b]/80 border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden h-fit">
-                    {/* Cover Image */}
-                    <div className="relative h-48 w-full group border-b border-white/10">
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-transparent z-10 pointer-events-none" />
-                      {/* Ảnh bìa */}
-                      <img
-                        src={project?.coverImage || "https://images.unsplash.com/photo-1635776062127-d379bfcba9f8"}
-                        className="w-full h-full object-cover transition-transform duration-700"
-                        alt="Cover"
-                      />
-                      {/* Overlay màu cam nhẹ */}
-                      <div className="absolute inset-0 bg-orange-500/10 mix-blend-overlay pointer-events-none" />
+                <div className="w-full max-w-3xl mx-auto space-y-8 animate-in fade-in duration-300">
 
-                      <button onClick={() => coverInputRef.current?.click()} className="absolute top-3 right-3 z-30 bg-black/60 hover:bg-black/80 text-white p-2 rounded-lg backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="h-4 w-4" />
-                      </button>
+                  {/* 1. COVER IMAGE: Độc lập, không card */}
+                  <div className="relative w-full rounded-xl overflow-hidden group shadow-sm border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 h-40">
+                    <div className="absolute inset-0 bg-black/10 dark:bg-black/40 z-10 pointer-events-none" />
+                    {project?.coverImage && (
+                      <img src={project.coverImage} className="w-full h-full object-cover" alt="Cover" />
+                    )}
+                    <button onClick={() => coverInputRef.current?.click()} className="absolute top-3 right-3 z-30 bg-white/90 dark:bg-black/80 hover:bg-white text-zinc-900 dark:text-white p-1.5 rounded-md border border-zinc-200 dark:border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm flex items-center gap-1.5 text-[10px] font-bold">
+                      <Camera className="h-3.5 w-3.5" /> Thay ảnh bìa
+                    </button>
+                  </div>
 
-                      <div className="absolute -bottom-10 left-8 flex items-end gap-5 z-20">
-                        <div className="relative h-20 w-20 rounded-2xl bg-[#121214] flex items-center justify-center shadow-2xl border border-white/20 group/avatar cursor-pointer overflow-hidden ring-4 ring-[#09090b]" onClick={() => avatarInputRef.current?.click()}>
-                          {project?.avatar ? <img src={project.avatar} className="w-full h-full object-cover" alt="Avatar"/> : <span className="text-3xl">🚀</span>}
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity"><Camera className="h-5 w-5 text-white" /></div>
-                        </div>
-                        <div className="mb-12"><h2 className="text-2xl font-black text-white drop-shadow-md tracking-tight">{project?.title || 'Dự án mới'}</h2></div>
+                  {/* 2. INFO & FORM: Nằm trực tiếp trên background */}
+                  <div className="px-1">
+
+                    {/* Header Info */}
+                    <div className="flex items-end gap-5 mb-8 relative -mt-16 z-20 px-4">
+                      <div className="relative h-20 w-20 rounded-2xl bg-white dark:bg-[#121214] flex items-center justify-center shadow-lg border border-zinc-200 dark:border-zinc-800 group/avatar cursor-pointer overflow-hidden ring-4 ring-zinc-50 dark:ring-[#0a0a0a]" onClick={() => avatarInputRef.current?.click()}>
+                        {project?.avatar ? <img src={project.avatar} className="w-full h-full object-cover" alt="Avatar"/> : <span className="text-3xl">🚀</span>}
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity"><Camera className="h-5 w-5 text-white" /></div>
+                      </div>
+                      <div className="mb-1.5">
+                        <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-none">{project?.title || 'Dự án mới'}</h2>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">Quản lý thông tin chung của dự án.</p>
                       </div>
                     </div>
 
-                    {/* Form */}
-                    <CardContent className="pt-14 pb-8 px-8 space-y-6">
+                    {/* Inputs */}
+                    <div className="space-y-6 max-w-2xl">
                       <div className="space-y-2">
-                        <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Tên dự án</label>
-                        <Input value={project?.title || ''} onChange={(e) => setProject({...project, title: e.target.value})} className="bg-white/[0.03] border-white/10 focus:border-orange-500/50" />
+                        <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200 flex items-center gap-1">
+                          Tên dự án <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          value={project?.title || ''}
+                          onChange={(e) => setProject({...project, title: e.target.value})}
+                          className="h-10 bg-white dark:bg-[#121214] border-zinc-200 dark:border-zinc-800 focus:border-orange-500 focus:ring-0 text-sm shadow-sm"
+                          placeholder="Nhập tên dự án..."
+                        />
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Mô tả</label>
-                        <Textarea className="min-h-[100px] bg-white/[0.03] border-white/10 focus:border-orange-500/50 resize-none" value={project?.description || ''} onChange={(e) => setProject({...project, description: e.target.value})} />
-                      </div>
-                    </CardContent>
-                  </Card>
 
-                  {/* Danger Zone */}
-                  <div className="mt-8 pt-8 border-t border-white/5">
-                    <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                      <div>
-                        <h3 className="text-red-500 font-bold flex items-center gap-2"><AlertTriangle className="h-5 w-5" /> Khu vực nguy hiểm</h3>
-                        <p className="text-sm text-zinc-400 mt-1">Xóa dự án này sẽ xóa vĩnh viễn mọi dữ liệu liên quan. Hành động này không thể hoàn tác.</p>
+                      {/* [ĐÃ ẨN MÃ KEY Ở ĐÂY] */}
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200">
+                          Mô tả dự án
+                        </label>
+                        <Textarea
+                          className="min-h-[100px] bg-white dark:bg-[#121214] border-zinc-200 dark:border-zinc-800 focus:border-orange-500 focus:ring-0 resize-none text-sm leading-relaxed shadow-sm"
+                          value={project?.description || ''}
+                          onChange={(e) => setProject({...project, description: e.target.value})}
+                          placeholder="Mô tả ngắn gọn về mục tiêu và phạm vi của dự án..."
+                        />
                       </div>
-                      <Button variant="destructive" onClick={() => setDeleteProjectOpen(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold whitespace-nowrap shadow-lg shadow-red-900/20 transition-all hover:scale-105 hover:shadow-red-900/40">Xóa dự án này</Button>
+                    </div>
+                  </div>
+
+                  {/* 3. DANGER ZONE (Tối giản) */}
+                  <div className="mt-10 pt-5 border-t border-zinc-200 dark:border-zinc-800">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-red-600 dark:text-red-500 font-bold text-sm">Xóa dự án</h3>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Xóa vĩnh viễn dự án và tất cả dữ liệu liên quan. Không thể hoàn tác.</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setDeleteProjectOpen(true)} className="border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 font-bold h-8 text-[10px] uppercase">
+                        Xóa dự án
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -245,42 +244,48 @@ export function ProjectSettingsView({ projectId }: { projectId: string }) {
 
               {/* --- TAB: MEMBERS --- */}
               {activeTab === 'members' && (
-                <div className="max-w-5xl mx-auto pb-20 animate-in fade-in duration-500 slide-in-from-bottom-4">
-                  <div className="flex items-end justify-between mb-8">
+                <div className="w-full max-w-5xl mx-auto space-y-4 animate-in fade-in duration-300">
+                  <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h2 className="text-3xl font-black text-white tracking-tight">Thành viên</h2>
-                      <p className="text-sm text-zinc-500 mt-1 italic">Dự án hiện có {project?.members?.length || 0} nhân sự đang hoạt động.</p>
+                      <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Thành viên</h2>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Quản lý quyền truy cập và vai trò.</p>
                     </div>
                     <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-                      <DialogTrigger asChild><Button className="bg-white text-black hover:bg-zinc-200 px-6 font-bold rounded-xl transition-all h-10 text-xs uppercase tracking-wide gap-2"><UserPlus className="h-4 w-4" /> Mời nhân sự mới</Button></DialogTrigger>
-                      <DialogContent className="bg-[#0c0c0c] border border-white/10 text-white sm:max-w-md">
-                        <DialogHeader><DialogTitle>Mời thành viên</DialogTitle><DialogDescription className="text-zinc-400">Tìm kiếm và thêm nhân sự vào dự án <strong>{project?.title}</strong>.</DialogDescription></DialogHeader>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-700 dark:hover:bg-zinc-200 px-4 font-bold rounded-lg transition-all h-9 text-[10px] uppercase tracking-wide gap-1.5 border-0 shadow-sm">
+                          <UserPlus className="h-3.5 w-3.5" /> Mời thành viên
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white sm:max-w-md">
+                        <DialogHeader><DialogTitle>Mời thành viên</DialogTitle><DialogDescription className="text-zinc-500 dark:text-zinc-400">Thêm nhân sự vào <strong>{project?.title}</strong>.</DialogDescription></DialogHeader>
                         <div className="space-y-4 py-4">
-                          <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" /><Input placeholder="Tìm theo tên hoặc email..." className="pl-9 bg-white/5 border-white/10 focus:border-orange-500/50" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+                          <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" /><Input placeholder="Tìm kiếm..." className="pl-9 bg-zinc-50 dark:bg-[#1a1a1d] border-zinc-200 dark:border-zinc-800 focus:border-orange-500 h-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
                           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                             {availableUsers.length > 0 ? availableUsers.map((user) => (
-                              <div key={user._id} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-colors">
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="h-8 w-8 border border-white/10"><AvatarFallback className="bg-orange-600 text-[10px] font-bold">{user.lastname[0]}</AvatarFallback></Avatar>
-                                  <div className="flex flex-col"><span className="text-sm font-bold text-zinc-200">{user.lastname} {user.firstname}</span><span className="text-[10px] text-zinc-500">{user.email}</span></div>
+                              <div key={user._id} className="flex items-center justify-between p-2 rounded bg-zinc-50 dark:bg-[#1a1a1d] border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-8 w-8 border border-zinc-200 dark:border-zinc-700"><AvatarFallback className="bg-orange-100 dark:bg-orange-600 text-orange-700 dark:text-white text-[10px] font-bold">{user.lastname[0]}</AvatarFallback></Avatar>
+                                  <div className="flex flex-col"><span className="text-xs font-bold text-zinc-900 dark:text-zinc-200">{user.lastname} {user.firstname}</span><span className="text-[10px] text-zinc-500">{user.email}</span></div>
                                 </div>
-                                <Button size="sm" className="h-7 bg-white/10 hover:bg-orange-600 hover:text-white text-zinc-300 border border-white/5 transition-all" onClick={() => handleAddMember(user)}>Thêm +</Button>
+                                <Button size="sm" className="h-7 bg-white dark:bg-[#27272a] hover:bg-orange-600 hover:text-white text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 transition-all shadow-sm text-[10px]" onClick={() => handleAddMember(user)}>Thêm</Button>
                               </div>
-                            )) : <div className="text-center py-8 text-zinc-500 text-sm">Không tìm thấy kết quả nào.</div>}
+                            )) : <div className="text-center py-4 text-zinc-500 text-xs">Không tìm thấy.</div>}
                           </div>
                         </div>
                       </DialogContent>
                     </Dialog>
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden backdrop-blur-md">
-                    <table className="w-full text-sm">
-                      <thead><tr className="bg-white/[0.03] text-[10px] text-zinc-500 uppercase tracking-[0.2em] border-b border-white/5"><th className="px-6 py-4 text-left font-black">Nhân sự</th><th className="px-6 py-4 text-left font-black">Vai trò</th><th className="px-6 py-4 text-right font-black px-10">Thao tác</th></tr></thead>
-                      <tbody className="divide-y divide-white/5">
+
+                  {/* Table: No Card wrapper, just border */}
+                  <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121214] overflow-hidden shadow-sm">
+                    <table className="w-full text-xs">
+                      <thead><tr className="bg-zinc-50 dark:bg-[#1a1a1d] text-[10px] text-zinc-500 uppercase tracking-wider border-b border-zinc-200 dark:border-zinc-800"><th className="px-4 py-3 text-left font-bold">Tên</th><th className="px-4 py-3 text-left font-bold">Vai trò</th><th className="px-4 py-3 text-right font-bold">Xóa</th></tr></thead>
+                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                       {project?.members?.map((member: any, i: number) => (
-                        <tr key={i} className="group hover:bg-white/[0.02] transition-colors">
-                          <td className="px-6 py-4"><div className="flex items-center gap-3"><Avatar className="h-9 w-9 border border-white/10 group-hover:border-orange-500/30 transition-all"><AvatarImage src={member.avatar} /><AvatarFallback className="bg-zinc-800 text-xs font-bold text-zinc-400">{member.name ? member.name.substring(0, 2).toUpperCase() : "??"}</AvatarFallback></Avatar><span className="font-bold text-zinc-300 group-hover:text-orange-300 transition-colors">{member.name}</span></div></td>
-                          <td className="px-6 py-4"><Badge variant="secondary" className="bg-white/5 text-zinc-400 hover:bg-white/10 text-[10px] font-mono">MEMBER</Badge></td>
-                          <td className="px-6 py-4 text-right px-10"><Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all" onClick={() => setMemberToDelete(member)}><Trash2 className="h-4 w-4" /></Button></td>
+                        <tr key={i} className="group hover:bg-zinc-50 dark:hover:bg-[#1a1a1d] transition-colors">
+                          <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar className="h-8 w-8 border border-zinc-200 dark:border-zinc-700"><AvatarImage src={member.avatar} /><AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-[10px] font-bold text-zinc-500 dark:text-zinc-400">{member.name ? member.name.substring(0, 2).toUpperCase() : "??"}</AvatarFallback></Avatar><span className="font-bold text-zinc-700 dark:text-zinc-300 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{member.name}</span></div></td>
+                          <td className="px-4 py-3"><Badge variant="secondary" className="bg-zinc-100 dark:bg-[#27272a] text-zinc-600 dark:text-zinc-400 border-0 text-[9px] font-mono h-5 px-2">MEMBER</Badge></td>
+                          <td className="px-4 py-3 text-right"><Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded opacity-0 group-hover:opacity-100 transition-all" onClick={() => setMemberToDelete(member)}><Trash2 className="h-4 w-4" /></Button></td>
                         </tr>
                       ))}
                       </tbody>
@@ -288,23 +293,23 @@ export function ProjectSettingsView({ projectId }: { projectId: string }) {
                   </div>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>
 
       {/* DIALOGS */}
       <AlertDialog open={!!memberToDelete} onOpenChange={() => setMemberToDelete(null)}>
-        <AlertDialogContent className="bg-[#0c0c0c] border border-white/10 text-white rounded-3xl">
-          <AlertDialogHeader><AlertDialogTitle className="text-red-500 uppercase font-black italic">Cảnh báo hệ thống!</AlertDialogTitle><AlertDialogDescription className="text-zinc-400">Bạn chắc chắn muốn xóa <span className="text-white font-bold">{memberToDelete?.name}</span>?</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel className="bg-zinc-900 border-white/5 hover:bg-zinc-800">Hủy</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteMember} className="bg-red-600 hover:bg-red-500">Xác nhận</AlertDialogAction></AlertDialogFooter>
+        <AlertDialogContent className="bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl shadow-xl max-w-sm">
+          <AlertDialogHeader><AlertDialogTitle className="text-red-600 dark:text-red-500 uppercase font-black italic text-sm">Cảnh báo hệ thống</AlertDialogTitle><AlertDialogDescription className="text-zinc-500 dark:text-zinc-400 text-xs">Xóa thành viên <span className="font-bold text-zinc-900 dark:text-white">{memberToDelete?.name}</span>?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel className="h-8 text-xs bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800">Hủy</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteMember} className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white border-0">Xác nhận</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={deleteProjectOpen} onOpenChange={setDeleteProjectOpen}>
-        <AlertDialogContent className="bg-[#0c0c0c] border border-red-500/20 text-white rounded-2xl shadow-2xl shadow-red-900/10">
-          <AlertDialogHeader><AlertDialogTitle className="text-red-500 uppercase font-black flex items-center gap-2 text-lg"><AlertTriangle className="h-5 w-5" /> Xác nhận xóa dự án</AlertDialogTitle><AlertDialogDescription className="text-zinc-400">Bạn có chắc chắn muốn xóa vĩnh viễn dự án <span className="text-white font-bold">{project?.title}</span> không? <br/><br/>Mọi dữ liệu task, thành viên và tài liệu liên quan sẽ bị xóa sạch và <span className="text-red-400">không thể khôi phục</span>.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter className="mt-4"><AlertDialogCancel className="bg-zinc-900 border-white/5 hover:bg-zinc-800 text-zinc-300">Suy nghĩ lại</AlertDialogCancel><AlertDialogAction onClick={handleDeleteProject} className="bg-red-600 hover:bg-red-700 text-white font-bold px-6">Xóa vĩnh viễn</AlertDialogAction></AlertDialogFooter>
+        <AlertDialogContent className="bg-white dark:bg-[#121214] border border-red-100 dark:border-red-900/30 text-zinc-900 dark:text-white rounded-xl shadow-2xl max-w-md">
+          <AlertDialogHeader><AlertDialogTitle className="text-red-600 dark:text-red-500 uppercase font-black flex items-center gap-2 text-sm"><AlertTriangle className="h-4 w-4" /> Xác nhận xóa dự án</AlertDialogTitle><AlertDialogDescription className="text-zinc-500 dark:text-zinc-400 text-xs">Xóa vĩnh viễn <span className="font-bold text-zinc-900 dark:text-white">{project?.title}</span>? Dữ liệu không thể phục hồi.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter className="mt-2"><AlertDialogCancel className="h-8 text-xs bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800">Hủy</AlertDialogCancel><AlertDialogAction onClick={handleDeleteProject} className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white font-bold border-0">Xóa vĩnh viễn</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

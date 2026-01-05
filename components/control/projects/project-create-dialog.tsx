@@ -29,10 +29,10 @@ export type Member = {
 interface ProjectCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: (member: Member) => void;
+  onSuccess?: () => void; // Update type to match usage if needed
 }
 
-export function ProjectCreateDialog({ open, onOpenChange }: ProjectCreateDialogProps) {
+export function ProjectCreateDialog({ open, onOpenChange, onSuccess }: ProjectCreateDialogProps) {
   const [projectName, setProjectName] = useState('');
   const [projectKey, setProjectKey] = useState('');
   const [description, setDescription] = useState('');
@@ -72,66 +72,83 @@ export function ProjectCreateDialog({ open, onOpenChange }: ProjectCreateDialogP
       toast.success("Đã tạo dự án mới");
       onOpenChange(false);
       setProjectName(''); setProjectKey(''); setDescription('');
+      if (onSuccess) onSuccess();
     }, 1000);
   };
 
-  // [CẬP NHẬT MỚI]: Đổi sang bg-[#050505] (Đen gần như tuyệt đối) để chìm vào nền
-  const glassInput = "bg-[#050505] border-white/10 text-white focus-visible:ring-indigo-500/50 placeholder:text-zinc-600 hover:border-white/20 transition-colors";
+  // --- STYLE CLASSES THÔNG MINH (Light/Dark) ---
 
-  // Card giữ nguyên độ trong suốt rất thấp
-  const glassCard = "bg-white/[0.03] border-white/10 shadow-none h-full";
+  // Input: Nền trắng/đen, viền 2px, Focus màu Cam
+  const inputClass = cn(
+    "bg-white dark:bg-zinc-900",
+    "border-2 border-zinc-200 dark:border-zinc-800",
+    "text-zinc-900 dark:text-white",
+    "placeholder:text-zinc-400",
+    "focus-visible:ring-0 focus-visible:border-orange-500 transition-all duration-200"
+  );
+
+  // Card: Nền xám nhạt/đen than, viền mảnh
+  const cardClass = cn(
+    "h-full shadow-sm",
+    "bg-zinc-50 dark:bg-[#121212]",
+    "border border-zinc-200 dark:border-zinc-800"
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-[1100px] w-[95vw] h-auto max-h-[90vh] bg-black border-white/10 p-0 flex flex-col gap-0 outline-none [&>button]:hidden overflow-hidden rounded-xl">
+      <DialogContent className="!max-w-[1100px] w-[95vw] h-auto max-h-[90vh] p-0 flex flex-col gap-0 outline-none overflow-hidden rounded-xl bg-white dark:bg-[#0a0a0a] border-zinc-200 dark:border-zinc-800 [&>button]:hidden">
 
         {/* HEADER */}
-        <DialogHeader className="p-5 bg-black shrink-0 flex-row items-center justify-between">
+        <DialogHeader className="p-5 bg-white dark:bg-[#0a0a0a] border-b border-zinc-200 dark:border-zinc-800 shrink-0 flex-row items-center justify-between">
           <div>
-            <DialogTitle className="text-xl font-bold text-white">Tạo Dự Án Mới</DialogTitle>
-            <DialogDescription className="text-zinc-500 text-xs mt-1">
+            <DialogTitle className="text-xl font-bold text-zinc-900 dark:text-white">Tạo Dự Án Mới</DialogTitle>
+            <DialogDescription className="text-zinc-500 dark:text-zinc-400 text-xs mt-1">
               Khởi tạo không gian làm việc mới cho đội nhóm.
             </DialogDescription>
           </div>
           <DialogClose asChild>
-            <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-white hover:bg-white/10 rounded-full h-8 w-8">
+            <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 dark:hover:text-white dark:hover:bg-white/10 rounded-full h-8 w-8">
               <X className="h-5 w-5" />
             </Button>
           </DialogClose>
         </DialogHeader>
 
         {/* BODY */}
-        <div className="flex-1 bg-black p-6 pt-2 overflow-y-auto">
+        <div className="flex-1 bg-white dark:bg-[#0a0a0a] p-6 pt-4 overflow-y-auto">
           <div className="grid gap-6 lg:grid-cols-12 h-full">
 
-            {/* CỘT TRÁI */}
+            {/* CỘT TRÁI: Thông tin chung */}
             <div className="lg:col-span-8 h-full">
-              <Card className={glassCard}>
-                <CardHeader className="border-b border-white/5 py-3 px-5">
-                  <CardTitle className="flex items-center gap-2 text-base text-white">
-                    <div className="p-1.5 rounded-md bg-indigo-500/20 text-indigo-400"><Briefcase className="h-4 w-4" /></div>
+              <Card className={cardClass}>
+                <CardHeader className="border-b border-zinc-200 dark:border-zinc-800 py-3 px-5">
+                  <CardTitle className="flex items-center gap-2 text-base text-zinc-900 dark:text-white">
+                    <div className="p-1.5 rounded-md bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
+                      <Briefcase className="h-4 w-4" />
+                    </div>
                     Thông tin chung
                   </CardTitle>
                 </CardHeader>
 
-                <CardContent className="space-y-4 pt-5 px-5">
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    <div className="md:col-span-8 space-y-1.5">
-                      <Label className="text-zinc-400 text-[10px] uppercase font-bold tracking-wider">Tên dự án <span className="text-red-500">*</span></Label>
+                <CardContent className="space-y-5 pt-5 px-5">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                    <div className="md:col-span-8 space-y-2">
+                      <Label className="text-zinc-500 dark:text-zinc-400 text-[10px] uppercase font-bold tracking-wider">
+                        Tên dự án <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         placeholder="Nhập tên dự án..."
-                        className={cn(glassInput, "h-10 text-sm px-3")}
+                        className={cn(inputClass, "h-10 text-sm px-3")}
                         value={projectName}
                         onChange={handleNameChange}
                       />
                     </div>
-                    <div className="md:col-span-4 space-y-1.5">
-                      <Label className="text-zinc-400 text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5">
+                    <div className="md:col-span-4 space-y-2">
+                      <Label className="text-zinc-500 dark:text-zinc-400 text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5">
                         <KeyRound className="h-3 w-3 text-orange-500" /> Mã Key
                       </Label>
                       <Input
                         placeholder="KEY"
-                        className={cn(glassInput, "h-10 text-sm font-mono font-bold text-center text-indigo-400 uppercase tracking-widest")}
+                        className={cn(inputClass, "h-10 text-sm font-mono font-bold text-center text-indigo-600 dark:text-indigo-400 uppercase tracking-widest")}
                         value={projectKey}
                         onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
                         maxLength={6}
@@ -139,11 +156,11 @@ export function ProjectCreateDialog({ open, onOpenChange }: ProjectCreateDialogP
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-zinc-400 text-[10px] uppercase font-bold tracking-wider">Mô tả chi tiết</Label>
+                  <div className="space-y-2">
+                    <Label className="text-zinc-500 dark:text-zinc-400 text-[10px] uppercase font-bold tracking-wider">Mô tả chi tiết</Label>
                     <Textarea
                       placeholder="Mô tả mục tiêu, phạm vi dự án..."
-                      className={cn(glassInput, "min-h-[140px] resize-none text-sm p-3 leading-relaxed")}
+                      className={cn(inputClass, "min-h-[140px] resize-none text-sm p-3 leading-relaxed")}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />
@@ -152,58 +169,64 @@ export function ProjectCreateDialog({ open, onOpenChange }: ProjectCreateDialogP
               </Card>
             </div>
 
-            {/* CỘT PHẢI */}
+            {/* CỘT PHẢI: Thành viên */}
             <div className="lg:col-span-4 h-full">
-              <Card className={cn(glassCard, "flex flex-col")}>
-                <CardHeader className="border-b border-white/5 py-3 px-5">
-                  <CardTitle className="flex items-center gap-2 text-base text-white">
-                    <div className="p-1.5 rounded-md bg-green-500/20 text-green-400"><Users className="h-4 w-4" /></div>
-                    Thành viên <span className="text-zinc-500 text-xs ml-auto font-normal">({members.length})</span>
+              <Card className={cn(cardClass, "flex flex-col")}>
+                <CardHeader className="border-b border-zinc-200 dark:border-zinc-800 py-3 px-5">
+                  <CardTitle className="flex items-center gap-2 text-base text-zinc-900 dark:text-white">
+                    <div className="p-1.5 rounded-md bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400">
+                      <Users className="h-4 w-4" />
+                    </div>
+                    Thành viên <span className="text-zinc-400 dark:text-zinc-500 text-xs ml-auto font-normal">({members.length})</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col gap-3 pt-4 px-4 pb-4 overflow-hidden">
 
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <UserPlus className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+                      <UserPlus className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
                       <Input
                         placeholder="Thêm thành viên..."
-                        className={cn(glassInput, "pl-9 h-10 text-sm")}
+                        className={cn(inputClass, "pl-9 h-10 text-sm")}
                         value={newMemberName}
                         onChange={(e) => setNewMemberName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddMember()}
                       />
                     </div>
-                    <Button size="icon" onClick={handleAddMember} className="shrink-0 h-10 w-10 bg-green-600 hover:bg-green-500"><Plus className="h-4 w-4" /></Button>
+                    <Button size="icon" onClick={handleAddMember} className="shrink-0 h-10 w-10 bg-green-600 hover:bg-green-500 text-white border-0 shadow-md shadow-green-500/20">
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
 
-                  <div className="flex-1 rounded-lg border border-white/5 bg-white/[0.02] overflow-hidden relative min-h-[150px]">
+                  <div className="flex-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 overflow-hidden relative min-h-[150px]">
                     <div className="absolute inset-0 overflow-y-auto custom-scrollbar">
                       <Table>
-                        <TableHeader className="bg-white/5 sticky top-0 z-10 backdrop-blur-md">
-                          <TableRow className="border-white/5 hover:bg-transparent h-8">
-                            <TableHead className="text-zinc-500 text-[10px] uppercase font-bold pl-3 h-8">Thành viên</TableHead>
+                        <TableHeader className="bg-zinc-100 dark:bg-white/5 sticky top-0 z-10 backdrop-blur-md">
+                          <TableRow className="border-zinc-200 dark:border-white/5 hover:bg-transparent h-8">
+                            <TableHead className="text-zinc-500 dark:text-zinc-400 text-[10px] uppercase font-bold pl-3 h-8">Thành viên</TableHead>
                             <TableHead className="w-8 h-8"></TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {members.map((m) => (
-                            <TableRow key={m.id} className="border-white/5 hover:bg-white/5 group h-10">
+                            <TableRow key={m.id} className="border-zinc-100 dark:border-white/5 hover:bg-zinc-50 dark:hover:bg-white/5 group h-12 transition-colors">
                               <TableCell className="py-1.5 pl-3">
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-6 w-6 border border-white/10">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-7 w-7 border border-zinc-200 dark:border-white/10">
                                     <AvatarImage src={m.avatar} />
-                                    <AvatarFallback className="bg-indigo-900 text-indigo-300 text-[10px] font-bold">{m.name[0]}</AvatarFallback>
+                                    <AvatarFallback className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 text-[10px] font-bold">
+                                      {m.name[0]}
+                                    </AvatarFallback>
                                   </Avatar>
                                   <div className="overflow-hidden">
-                                    <p className="text-xs font-medium text-zinc-200 truncate leading-none">{m.name}</p>
-                                    <p className="text-[9px] text-zinc-500 truncate leading-tight mt-0.5">{m.email}</p>
+                                    <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-200 truncate leading-none">{m.name}</p>
+                                    <p className="text-[10px] text-zinc-500 dark:text-zinc-500 truncate leading-tight mt-1">{m.email}</p>
                                   </div>
                                 </div>
                               </TableCell>
                               <TableCell className="pr-1 text-right">
-                                <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Trash2 className="h-3 w-3" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all">
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -220,13 +243,19 @@ export function ProjectCreateDialog({ open, onOpenChange }: ProjectCreateDialogP
         </div>
 
         {/* FOOTER */}
-        <div className="p-4 bg-black flex justify-end gap-3 shrink-0">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="h-10 px-6 text-zinc-400 hover:text-white hover:bg-white/10 text-sm">Hủy bỏ</Button>
+        <div className="p-4 bg-white dark:bg-[#0a0a0a] border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-3 shrink-0">
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="h-10 px-6 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/10 text-sm font-medium"
+          >
+            Hủy bỏ
+          </Button>
 
           <Button
             onClick={handleSave}
             disabled={isLoading}
-            className="h-10 px-8 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-lg shadow-orange-500/20 font-bold text-sm"
+            className="h-10 px-8 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-lg shadow-orange-500/20 font-bold text-sm border-0"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /> Lưu Dự Án</>}
           </Button>

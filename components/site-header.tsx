@@ -14,21 +14,31 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useSidebar } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
 
   return (
-    // 👇 THAY ĐỔI LỚN NHẤT Ở ĐÂY:
-    // 1. bg-white/10: Nền trắng mờ nhẹ.
-    // 2. backdrop-blur-md: Hiệu ứng làm mờ phía sau.
-    // 3. border-white/10: Viền dưới mờ ảo.
-    <header className="sticky top-0 z-50 flex w-full items-center border-b border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md transition-all">
+    // [CONTAINER]
+    // Light: bg-[#FF8F5C] (Cam)
+    // Dark: dark:bg-black (Đen)
+    // Bỏ backdrop-blur, thêm transition-colors để đổi màu mượt mà
+    <header className={cn(
+      "sticky top-0 z-50 flex w-full items-center border-b transition-colors duration-300",
+      "bg-[#FF8F5C] border-orange-700/10", // Light Mode Styles
+      "dark:bg-black dark:border-zinc-800"  // Dark Mode Styles
+    )}>
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4">
 
-        {/* Nút Toggle Sidebar: Chỉnh màu trắng mờ */}
+        {/* [TOGGLE BUTTON] */}
+        {/* Light: Trắng - Dark: Cam */}
         <Button
-          className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/10"
+          className={cn(
+            "h-8 w-8 transition-colors",
+            "text-white hover:bg-white/20 hover:text-white", // Light
+            "dark:text-orange-500 dark:hover:bg-zinc-900 dark:hover:text-orange-400" // Dark
+          )}
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
@@ -36,25 +46,43 @@ export function SiteHeader() {
           <SidebarIcon />
         </Button>
 
-        {/* Đường gạch dọc: Chỉnh màu trắng mờ */}
-        <Separator orientation="vertical" className="mr-2 h-4 bg-white/20" />
+        {/* [SEPARATOR] */}
+        <Separator
+          orientation="vertical"
+          className={cn(
+            "mr-2 h-4",
+            "bg-white/30", // Light
+            "dark:bg-zinc-800" // Dark
+          )}
+        />
 
-        {/* Breadcrumb: Chỉnh màu chữ sang trắng/xám sáng */}
+        {/* [BREADCRUMB] */}
         <Breadcrumb className="hidden sm:block">
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink
                 href="#"
-                className="text-white/60 hover:text-white transition-colors"
+                className={cn(
+                  "transition-colors",
+                  "text-white/80 hover:text-white", // Light
+                  "dark:text-zinc-400 dark:hover:text-orange-500" // Dark
+                )}
               >
                 Building Your Application
               </BreadcrumbLink>
             </BreadcrumbItem>
 
-            <BreadcrumbSeparator className="text-white/40" />
+            <BreadcrumbSeparator className={cn(
+              "text-white/50", // Light
+              "dark:text-zinc-600" // Dark
+            )} />
 
             <BreadcrumbItem>
-              <BreadcrumbPage className="text-white font-medium drop-shadow-sm">
+              <BreadcrumbPage className={cn(
+                "font-medium",
+                "text-white", // Light
+                "dark:text-orange-500" // Dark (Active Item màu cam)
+              )}>
                 Data Fetching
               </BreadcrumbPage>
             </BreadcrumbItem>
@@ -62,7 +90,7 @@ export function SiteHeader() {
         </Breadcrumb>
 
         {/* Search Form */}
-        <SearchForm className="w-full min-w-[300px] sm:ml-auto sm:w-auto" />
+        <SearchForm className="w-full min-w-[300px] text-white sm:ml-auto sm:w-auto" />
       </div>
     </header>
   );
