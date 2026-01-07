@@ -5,6 +5,7 @@ import { ReactNode } from 'react';
 import { IMenuSideBar } from '@/models/menu-sidebar.model';
 import LangLandingLayout from '@/app/control/lang';
 
+
 export default async function ManLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const token = cookieStore.get('accessToken')?.value;
@@ -30,12 +31,12 @@ export default async function ManLayout({ children }: { children: ReactNode }) {
     navSecondary: [
       {
         title: 'i_support',
-        url: '#',
-        icon: 'LifeBuoy',
+        url: '/control/support',
+        icon: 'Lifebuoy',
       },
       {
         title: 'i_feedback',
-        url: '#',
+        url: 'control/feedback',
         icon: 'Send',
       },
     ],

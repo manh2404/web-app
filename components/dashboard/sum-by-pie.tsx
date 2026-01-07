@@ -17,11 +17,11 @@ export default function SumByPie() {
     return { value: el, label: el === '1' ? t('this_day') : el === '7' ? t('last_7_days') : t('last_30_days') };
   });
 
-  useEffect(() => {
-    GET_METHOD(`/api/order/sum?day=${crStatus}`).then((response) => {
-      setPieData(response);
-    });
-  }, [crStatus]);
+  // useEffect(() => {
+  //   GET_METHOD(`/api/order/sum?day=${crStatus}`).then((response) => {
+  //     setPieData(response);
+  //   });
+  // }, [crStatus]);
 
   return pieData && pieData.length > 0 && (
     <Card className="flex flex-col">

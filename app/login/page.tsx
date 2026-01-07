@@ -1,14 +1,18 @@
-import { LoginForm } from '@/app/login/login-form';
-import { Suspense } from 'react';
+import React from 'react';
+import { AuthLayout } from '@/components/auth/auth-layout';
+import { LoginForm } from '@/components/auth/login-form';
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <Suspense fallback={<div>Loading...</div>}>
-          <LoginForm />
-        </Suspense>
-      </div>
-    </div>
+    // 1. Gọi Layout (Cung cấp nền Lava)
+    // 2. Truyền title/subtitle nếu muốn hiển thị ở trên Form
+    <AuthLayout
+      title="Chào mừng trở lại"
+      subtitle="Nhập thông tin để truy cập."
+      size="small"
+    >
+      {/* 3. Gọi Form (Nội dung chính) */}
+      <LoginForm />
+    </AuthLayout>
   );
 }
