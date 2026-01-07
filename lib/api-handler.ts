@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import dbConnect from '@/lib/mongo';
+// import dbConnect from '@/lib/mongo';
 import { verifyToken } from '@/lib/auth';
 import { IUser } from '@/models/user.model';
 
@@ -32,8 +32,6 @@ export async function withApiHandler(
         if (!user) {
             return NextResponse.json({ message: 'Invalid Token' }, { status: 401 });
         }
-
-        await dbConnect();
 
         const userId = (user as any).userId || user._id?.toString() || user._id;
 

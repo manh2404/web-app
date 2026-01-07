@@ -27,6 +27,18 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   data: IMenuSideBar
 }
 
+
+function getRoles(user: IUser): string[] {
+  const anyUser = user as any;
+  if (Array.isArray(anyUser.roles)) return anyUser.roles.map(String);
+  if (typeof anyUser.role === "string") return [anyUser.role];
+  return [];
+}
+
+function hasRole(user: IUser, role: string) {
+  return getRoles(user).includes(role);
+}
+
 export function AppSidebar({ ...props }: AppSidebarProps) {
   const { config } = useAppContext();
   const { t } = useTranslation();
@@ -58,13 +70,35 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
     icon: SquareKanban,
     isActive: false,
   };
+  const isAdmin = hasRole(props.user, "admin");
+  const isStaff = hasRole(props.user, "staff");
+  // const isCustomer = hasRole(props.user, "customer");
+  // if (isCustomer) return null;
 
-  const mergedNavMain = [...(props.data.navMain || []), projectMenuStatic];
+
+  const canSeeAnyMenu = isAdmin || isStaff;
+  const canSeeProjects = isAdmin || isStaff;
+  const canSeeUsersMenu = isAdmin;
+  // const canSeeFooterUser = isAdmin || isStaff || isCustomer;
 
   const supportMenu = [
     { title: "Hỗ trợ", url: "/control/support", icon: LifeBuoy },
     { title: "Phản hồi", url: "/control/feedback", icon: Send },
   ];
+  const filteredSupportMenu = canSeeAnyMenu ? supportMenu : [];
+  const filteredNavMain = (props.data.navMain || []).filter((item: any) => {
+    // customer: ẩn hết
+    if (!canSeeAnyMenu) return false;
+
+    // staff: ẩn menu người dùng
+    if (!canSeeUsersMenu) {
+      if (String(item.url || "").startsWith("/control/user")) return false;
+    }
+
+    return true;
+  });
+
+  const mergedNavMain = [...filteredNavMain, projectMenuStatic];
 
   return (
     <Sidebar className="top-(--header-height) h-[calc(100svh-var(--header-height))]!" {...props}>
@@ -91,13 +125,14 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
 
         {/* PHẦN 1: MENU CHÍNH (Cố định) */}
         <div className="flex-shrink-0 px-2 py-2">
-          <NavMain items={mergedNavMain} />
+          {canSeeAnyMenu && <NavMain items={mergedNavMain} />}
           <div className="px-3 mt-2">
             <div className="h-[1px] bg-white/10 w-full" />
           </div>
         </div>
 
         {/* PHẦN 2: KHU VỰC DỰ ÁN (Cuộn độc lập) */}
+        {canSeeProjects &&
         <div className="flex-1 flex flex-col min-h-0">
           <Collapsible defaultOpen className="flex flex-col h-full group/workspace">
             {/* TIÊU ĐỀ DỰ ÁN (Cố định) */}
@@ -201,7 +236,7 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
               </SidebarMenu>
             </CollapsibleContent>
           </Collapsible>
-        </div>
+        </div>}
 
         <div className="px-5">
           <div className="h-[1px] bg-white/10 w-full" />
@@ -209,7 +244,7 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
 
         {/* PHẦN 3: MENU ĐÁY (Cố định) */}
         <div className="flex-shrink-0 mt-auto px-2 py-2">
-          <NavSecondary items={supportMenu} />
+          {canSeeAnyMenu && <NavSecondary items={filteredSupportMenu} />}
         </div>
 
       </SidebarContent>

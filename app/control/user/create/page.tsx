@@ -33,7 +33,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
-import { cn } from '@/lib/utils';
+// import { cn } from '@/lib/utils';
 
 export default function CreateUserPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -65,6 +65,77 @@ export default function CreateUserPage() {
   const glassCardClass = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border-white/20 shadow-sm";
   const glassInputClass = "bg-white/40 dark:bg-black/20 border-white/20 focus-visible:ring-blue-500/50";
 
+  // thêm state
+  const [fullname, setFullname] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [dob, setDob] = useState(""); // yyyy-mm-dd
+  const [address, setAddress] = useState("");
+  const [department, setDepartment] = useState<string>("");
+  const [role, setRole] = useState<string>("staff");
+  const [isActive, setIsActive] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  function splitFullname(name: string) {
+    const s = name.trim().replace(/\s+/g, " ");
+    if (!s) return { firstname: "", lastname: "" };
+    const parts = s.split(" ");
+    if (parts.length === 1) return { firstname: parts[0], lastname: "" };
+    const lastname = parts.pop()!;
+    const firstname = parts.join(" ");
+    return { firstname, lastname };
+  }
+
+  async function handleSubmit() {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    if (!fullname.trim()) return setErrorMsg("Vui lòng nhập Họ và tên.");
+    if (!email.trim()) return setErrorMsg("Vui lòng nhập Email.");
+    if (!password.trim()) return setErrorMsg("Vui lòng nhập Mật khẩu khởi tạo.");
+
+    const { firstname, lastname } = splitFullname(fullname);
+
+    const payload: any = {
+      email: email.trim(),
+      phone: phone.trim() || undefined,
+      firstname,
+      lastname,
+      roles: [role],          // API nhận roles[]
+      password: password,     // API nhận password
+      // chỉ bật các field dưới nếu model Staff có:
+      // address,
+      // dob,
+      // department,
+      // isActive,
+    };
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || data?.message || "Tạo user thất bại");
+      }
+
+      setSuccessMsg("Tạo thành công.");
+      // tuỳ bạn redirect:
+      // router.push("/control/user");
+    } catch (e: any) {
+      setErrorMsg(e.message || "Có lỗi xảy ra");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+
   return (
     <div className="flex flex-col h-full w-full space-y-6 p-6 overflow-y-auto">
 
@@ -85,9 +156,22 @@ export default function CreateUserPage() {
           <Button variant="ghost" className="flex-1 sm:flex-none hover:bg-white/20" asChild>
             <Link href="/control/user">Hủy bỏ</Link>
           </Button>
-          <Button className="flex-1 sm:flex-none bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 border-0">
-            <Save className="mr-2 h-4 w-4" /> Lưu hồ sơ
+          <Button className="flex-1 sm:flex-none bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 border-0" onClick={handleSubmit} disabled={isSubmitting}>
+            <Save className="mr-2 h-4 w-4" /> {isSubmitting ? "Đang lưu..." : "Lưu hồ sơ"}
           </Button>
+        </div>
+        <div className="mt-2">
+          {errorMsg && (
+              <p className="text-sm text-red-500 font-medium">
+                {errorMsg}
+              </p>
+          )}
+
+          {successMsg && (
+              <p className="text-sm text-green-500 font-medium">
+                {successMsg}
+              </p>
+          )}
         </div>
       </div>
 
@@ -153,7 +237,7 @@ export default function CreateUserPage() {
                   <Label className="text-base font-medium">Kích hoạt</Label>
                   <p className="text-xs text-muted-foreground">Cho phép đăng nhập ngay.</p>
                 </div>
-                <Switch defaultChecked className="data-[state=checked]:bg-green-500" />
+                <Switch defaultChecked className="data-[state=checked]:bg-green-500" checked={isActive} onCheckedChange={setIsActive}/>
               </div>
 
               <div className="flex items-center justify-between p-3 border border-white/10 rounded-lg bg-white/20 dark:bg-black/20">
@@ -177,27 +261,27 @@ export default function CreateUserPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="fullname">Họ và tên <span className="text-red-500">*</span></Label>
-                <Input id="fullname" placeholder="Nhập tên đầy đủ" className={glassInputClass} />
+                <Input id="fullname" placeholder="Nhập tên đầy đủ" className={glassInputClass} value={fullname} onChange={(e)=>setFullname(e.target.value)} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
-                <Input id="email" type="email" placeholder="user@example.com" className={glassInputClass} />
+                <Input id="email" type="email" placeholder="user@example.com" className={glassInputClass} value={email} onChange={(e)=>setEmail(e.target.value)} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phone">Số điện thoại</Label>
-                <Input id="phone" placeholder="VD: 098..." className={glassInputClass} />
+                <Input id="phone" placeholder="VD: 098..." className={glassInputClass} value={phone} onChange={(e)=>setPhone(e.target.value)}  />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="dob">Ngày sinh</Label>
-                <Input id="dob" type="date" className={glassInputClass} />
+                <Input id="dob" type="date" className={glassInputClass} value={dob} onChange={(e)=>setDob(e.target.value)} />
               </div>
 
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="address">Địa chỉ</Label>
-                <Input id="address" placeholder="Nhập địa chỉ thường trú..." className={glassInputClass} />
+                <Input id="address" placeholder="Nhập địa chỉ thường trú..." className={glassInputClass} value={address} onChange={(e)=>setAddress(e.target.value)}  />
               </div>
 
             </CardContent>
@@ -211,7 +295,7 @@ export default function CreateUserPage() {
 
               <div className="space-y-2">
                 <Label>Phòng ban</Label>
-                <Select>
+                <Select value={department} onValueChange={setDepartment}>
                   <SelectTrigger className={glassInputClass}>
                     <SelectValue placeholder="Chọn phòng ban" />
                   </SelectTrigger>
@@ -226,15 +310,15 @@ export default function CreateUserPage() {
 
               <div className="space-y-2">
                 <Label>Chức vụ (Role)</Label>
-                <Select defaultValue="staff">
+                <Select defaultValue="staff" value={role} onValueChange={setRole}>
                   <SelectTrigger className={glassInputClass}>
                     <SelectValue placeholder="Chọn chức vụ" />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl">
                     <SelectItem value="admin" className="text-red-500 font-medium">Quản trị viên (Admin)</SelectItem>
-                    <SelectItem value="manager" className="text-blue-500 font-medium">Quản lý (Manager)</SelectItem>
-                    <SelectItem value="staff">Nhân viên (Staff)</SelectItem>
-                    <SelectItem value="intern">Thực tập sinh (Intern)</SelectItem>
+                    {/*<SelectItem value="manager" className="text-blue-500 font-medium">Quản lý (Manager)</SelectItem>*/}
+                    <SelectItem value="staff" className="text-blue-500 font-medium">Nhân viên (Staff)</SelectItem>
+                    <SelectItem value="customer">khách hàng (Customer)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
