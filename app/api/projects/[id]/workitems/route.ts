@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongo';
 import WorkItem from '@/models/work-item.model';
 import Project from '@/models/project.model';
-import User from '@/models/user.model';
 
 // Helper: Chuẩn hóa Status từ Frontend (todo -> Todo, in_progress -> In Progress)
 // Giúp tránh lỗi Validation của Mongoose
@@ -91,6 +90,7 @@ export async function POST(
       status: dbStatus,
       project: projectId,
       taskId: newTaskId,
+      startDate: body.startDate,
       dueDate: body.dueDate,
       assignee: body.assignee || null
     });
@@ -101,7 +101,9 @@ export async function POST(
     // 7. Trả về task với format status mà Frontend hiểu ('todo' thay vì 'Todo')
     const responseTask = {
       ...newTask.toObject(),
-      status: body.status // Trả lại đúng status mà frontend vừa gửi lên để nó tự update UI
+      status: body.status, // Trả lại đúng status mà frontend vừa gửi lên để nó tự update UI
+      endDate: newTask.dueDate,
+      importance: body.priority
     };
 
     return NextResponse.json(responseTask);
@@ -111,6 +113,50 @@ export async function POST(
     return NextResponse.json(
       { error: error.message || 'Failed to create task' },
       { status: 500 }
+    );
+  }
+}
+
+// 3. PATCH: Cập nhật trạng thái Task (dùng cho drag & drop)
+export async function PATCH(
+    req: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectToDatabase();
+    const {id: projectId} = await params;
+    const body = await req.json();
+
+    const {workItemId, status} = body;
+    if (!workItemId || !status) {
+      return NextResponse.json(
+          {error: 'Missing workItemId or status'},
+          {status: 400}
+      );
+    }
+
+    const dbStatus = normalizeStatus(status);
+
+    const updatedTask = await WorkItem.findOneAndUpdate(
+        {_id: workItemId, project: projectId},
+        {status: dbStatus},
+        {new: true}
+    );
+
+    if (!updatedTask) {
+      return NextResponse.json({error: 'Task not found'}, {status: 404});
+    }
+
+    return NextResponse.json({
+      ...updatedTask.toObject(),
+      status // trả lại format frontend
+    });
+
+  } catch (error: any) {
+    console.error("❌ Lỗi PATCH TASK:", error);
+    return NextResponse.json(
+        {error: error.message || 'Failed to update task'},
+        {status: 500}
     );
   }
 }
