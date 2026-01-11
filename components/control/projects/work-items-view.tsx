@@ -39,11 +39,17 @@ const STATUS_OPTIONS = [
   { value: 'canceled', label: 'Canceled', icon: X, color: 'text-red-500' },
 ];
 
-const IMPORTANCE_OPTIONS = [
+const IMPORTANCE_OPTIONS: {
+  value: 'low' | 'medium' | 'high';
+  label: string;
+  icon: any;
+  color: string;
+}[] = [
   { value: 'high', label: 'High', icon: ArrowUpCircle, color: 'text-orange-500' },
   { value: 'medium', label: 'Medium', icon: MoreHorizontal, color: 'text-blue-500' },
   { value: 'low', label: 'Low', icon: ArrowUpCircle, color: 'text-slate-500 rotate-180' },
 ];
+
 
 export function WorkItemsView({ projectId: _projectId }: { projectId: string }) {
   const [winReady, setWinReady] = useState(false);
@@ -51,13 +57,17 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [parentTaskForSub, setParentTaskForSub] = useState<Task | null>(null);
+  const [editTask, setEditTask] = useState<Task | null>(null);
+  // const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
 
   // Form State
   const [newTaskData, setNewTaskData] = useState<{
-    title: string; description: string; status: string; importance: string;
+    title: string; description: string; status: string; priority: 'low' | 'medium' | 'high';
     assignee: any | null; startDate: Date | null; endDate: Date | null; estimate: number | null;
   }>({
-    title: "", description: "", status: "todo", importance: "medium",
+    title: "", description: "", status: "todo", priority: "medium",
     assignee: null, startDate: null, endDate: null, estimate: null
   });
 
@@ -109,44 +119,117 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
     }
   };
 
-  const updateTask = (taskId: string, field: string, value: any) => {
-    setTasks(tasks.map(t => t._id === taskId ? { ...t, [field]: value } : t));
-    if (selectedTask?._id === taskId) { setSelectedTask(prev => prev ? { ...prev, [field]: value } : null); }
+  const updateTask = async (taskId: string, field: string, value: any) => {
+    setTasks(prev =>
+      prev.map(t =>
+        t._id === taskId ? { ...t, [field]: value } : t
+      )
+    );
+
+    if (selectedTask?._id === taskId) {
+      setSelectedTask(prev => prev ? { ...prev, [field]: value } : null);
+    }
+
+    const payload: any = {
+      workItemId: taskId,
+      [field]: value
+    };
+
+    if (field === 'assignee') {
+      payload[field] = value?._id || null;
+    }
+
+    try {
+      await axios.patch(
+        `/api/projects/${_projectId}/workitems`,
+        payload
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error("Không lưu được thay đổi");
+    }
   };
 
-  const handleCreateTask = async () => {
+  const handleSubmitTask = async () => {
     if (!newTaskData.title) {
       return toast.error("Vui lòng nhập tiêu đề");
     }
 
     try {
-      const res = await axios.post(
+      setIsSaving(true);
+
+      const payload = {
+        title: newTaskData.title,
+        description: newTaskData.description,
+        status: newTaskData.status,
+        priority: newTaskData.priority,
+        assignee: newTaskData.assignee?._id || null,
+        startDate: newTaskData.startDate,
+        dueDate: newTaskData.endDate,
+        estimate: newTaskData.estimate,
+      };
+
+      let res: any;
+
+      if (editTask) {
+        res = await axios.patch(
           `/api/projects/${_projectId}/workitems`,
           {
-            title: newTaskData.title,
-            description: newTaskData.description,
-            status: newTaskData.status,
-            priority: newTaskData.importance,
-            assignee: newTaskData.assignee?._id || null,
-            startDate: newTaskData.startDate,
-            dueDate: newTaskData.endDate,
+            workItemId: editTask._id,
+            ...payload
           }
-      );
+        );
 
-      setTasks(prev => [res.data, ...prev]);
+        setTasks(prev =>
+          prev.map(t => t._id === res.data._id ? res.data : t)
+        );
+
+        if (selectedTask?._id === res.data._id) {
+          setSelectedTask(res.data);
+        }
+
+        toast.success("Đã cập nhật công việc");
+      } else {
+        res = await axios.post(
+          `/api/projects/${_projectId}/workitems`,
+          payload
+        );
+
+        setTasks(prev => [res.data, ...prev]);
+        toast.success("Đã tạo công việc mới");
+      }
 
       setIsCreateOpen(false);
-      toast.success("Đã tạo công việc mới");
+      setEditTask(null);
+
+      setNewTaskData({
+        title: "",
+        description: "",
+        status: "todo",
+        priority: "medium",
+        assignee: null,
+        startDate: null,
+        endDate: null,
+        estimate: null
+      });
+
     } catch (err) {
       console.error(err);
-      toast.error("Tạo công việc thất bại");
+      toast.error("Lưu công việc thất bại");
+    } finally {
+      setIsSaving(false);
     }
   };
 
+
+
+
+
   const openCreateDialog = (status = "todo", parent: Task | null = null) => {
+    setEditTask(null);
     setParentTaskForSub(parent);
     setNewTaskData({
-      title: "", description: "", status, importance: "medium",
+      title: "", description: "", status, priority: "medium",
       assignee: null, startDate: null, endDate: null, estimate: null
     });
     setIsCreateOpen(true);
@@ -156,7 +239,7 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
   const getParentInfo = (parentId: string) => { const parent = tasks.find(t => t._id === parentId); return parent ? `${parent.taskId} - ${parent.title}` : "Unknown Parent"; };
 
   const createStatus = STATUS_OPTIONS.find(s => s.value === newTaskData.status) || STATUS_OPTIONS[1];
-  const createImportance = IMPORTANCE_OPTIONS.find(i => i.value === newTaskData.importance) || IMPORTANCE_OPTIONS[1];
+  const createImportance = IMPORTANCE_OPTIONS.find(i => i.value === newTaskData.priority) || IMPORTANCE_OPTIONS[1];
 
   const stopProp = (e: React.MouseEvent | React.PointerEvent) => { e.stopPropagation(); };
 
@@ -211,14 +294,58 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                                   {/* Top */}
                                   <div className="flex flex-col gap-1">
                                     {task.parentId && (<div className="flex items-center gap-1 text-[9px] text-zinc-400"><GitMerge className="h-2.5 w-2.5 rotate-180" /><span className="truncate max-w-[200px]">{getParentInfo(task.parentId)}</span></div>)}
-                                    <div className="flex justify-between items-start"><span className="text-[10px] text-zinc-400 font-mono group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors">{task.taskId}</span></div>
+                                    <div className="flex justify-between items-start">
+                                      <span className="text-[10px] text-zinc-400 font-mono group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors">
+                                        {task.taskId}
+                                      </span>
+
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <button
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-zinc-100 dark:hover:bg-white/10"
+                                          >
+                                            <MoreHorizontal className="h-4 w-4 text-zinc-400 hover:text-zinc-700 dark:hover:text-white" />
+                                          </button>
+                                        </PopoverTrigger>
+
+                                        <PopoverContent
+                                          className="w-32 p-1 text-xs"
+                                          align="end"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <button
+                                            className="w-full text-left px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-white/10"
+                                            onClick={() => {
+                                              setParentTaskForSub(null);
+                                              setEditTask(task);
+                                              setNewTaskData({
+                                                title: task.title,
+                                                description: task.description || "",
+                                                status: task.status,
+                                                priority: task.priority || "medium",
+                                                assignee: task.assignee || null,
+                                                startDate: task.startDate ? new Date(task.startDate) : null,
+                                                endDate: task.endDate ? new Date(task.endDate) : null,
+                                                estimate: task.estimate || null
+                                              });
+                                              setIsCreateOpen(true);
+                                            }}
+
+                                          >
+                                            ✏️ Edit
+                                          </button>
+                                        </PopoverContent>
+                                      </Popover>
+
+                                    </div>
                                   </div>
                                   <div className="text-xs font-medium text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-snug group-hover:text-black dark:group-hover:text-white">{task.title}</div>
 
                                   {/* --- INTERACTIVE ATTRIBUTES ON CARD --- */}
-                                  <div className="flex flex-wrap items-center gap-1.5 pt-1" onPointerDown={stopProp} onClick={stopProp} onMouseDown={stopProp}>
-
-                                    {/* Status Button */}
+                                  <div className="flex flex-wrap items-center gap-1.5 pt-1"
+                                       onClick={stopProp}>
+                                  {/* Status Button */}
                                     {(() => {
                                       const sInfo = STATUS_OPTIONS.find(s => s.value === task.status) || STATUS_OPTIONS[1];
                                       return (
@@ -258,11 +385,20 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                                       <PopoverTrigger asChild>
                                         <button className={cn("flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded transition-colors", task.estimate ? "text-zinc-600 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300" : "text-zinc-400 dark:text-zinc-600")}>
                                           <Triangle className="h-2.5 w-2.5" />
-                                          <span>{task.estimate || '-'}</span>
+                                          <span>{task.estimate ? `${task.estimate}h` : '-'}</span>
                                         </button>
                                       </PopoverTrigger>
                                       <PopoverContent className="w-[140px] p-2 bg-white dark:bg-[#1a1a1d] border border-zinc-200 dark:border-white/10 z-50 shadow-xl" align="start">
-                                        <div className="flex flex-wrap gap-1">{estimates.map(est => <div key={est} onClick={() => updateTask(task._id, 'estimate', est)} className="px-2 py-1 bg-zinc-50 dark:bg-white/5 hover:bg-zinc-100 dark:hover:bg-white/10 text-xs text-zinc-700 dark:text-zinc-300 rounded cursor-pointer border border-transparent">{est}</div>)}</div>
+                                        <div className="flex flex-wrap gap-1">{estimates.map(est =>
+                                          <div
+                                            key={est}
+                                            onClick={() => updateTask(task._id, 'estimate', est)} // est là number ✅
+                                            className="..."
+                                          >
+                                            {est}h
+                                          </div>
+                                        )}
+                                        </div>
                                       </PopoverContent>
                                     </Popover>
 
@@ -305,7 +441,13 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
             {/* Header */}
             <div className="px-6 py-5 border-b border-zinc-100 dark:border-white/5 flex items-center justify-between bg-zinc-50/50 dark:bg-white/[0.01] rounded-t-xl">
               <div className="flex flex-col gap-1">
-                <DialogTitle className="text-lg font-bold tracking-tight">{parentTaskForSub ? "Thêm công việc con" : "Thêm công việc mới"}</DialogTitle>
+                <DialogTitle className="text-lg font-bold tracking-tight">
+                  {editTask
+                    ? "Chỉnh sửa công việc"
+                    : parentTaskForSub
+                      ? "Thêm công việc con"
+                      : "Thêm công việc mới"}
+                </DialogTitle>
                 <div className="flex items-center gap-2 text-xs text-zinc-500"><span className="font-medium">Tên dự án</span>{parentTaskForSub && <><span>/</span><span className="text-indigo-500 dark:text-indigo-400">Thuộc: {parentTaskForSub.title}</span></>}</div>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setIsCreateOpen(false)} className="h-8 w-8 text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 rounded-full"><X className="h-5 w-5" /></Button>
@@ -369,9 +511,9 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                       <CommandList>
                         <CommandGroup>
                           {IMPORTANCE_OPTIONS.map((opt) => (
-                            <CommandItem key={opt.value} onSelect={() => setNewTaskData({ ...newTaskData, importance: opt.value })} className="hover:bg-zinc-100 dark:hover:bg-white/10 cursor-pointer aria-selected:bg-zinc-100 dark:aria-selected:bg-white/10">
+                            <CommandItem key={opt.value} onSelect={() => setNewTaskData({ ...newTaskData, priority: opt.value })} className="hover:bg-zinc-100 dark:hover:bg-white/10 cursor-pointer aria-selected:bg-zinc-100 dark:aria-selected:bg-white/10">
                               <opt.icon className={cn("mr-2 h-4 w-4", opt.color)} /> {opt.label}
-                              {newTaskData.importance === opt.value && <CheckCircle2 className="ml-auto h-4 w-4 opacity-50" />}
+                              {newTaskData.priority === opt.value && <CheckCircle2 className="ml-auto h-4 w-4 opacity-50" />}
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -412,7 +554,7 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                   <PopoverTrigger asChild>
                     <Button variant="outline" size="sm" className="h-8 border-dashed border-zinc-300 dark:border-white/10 bg-white dark:bg-transparent hover:bg-zinc-100 dark:hover:bg-white/5 text-xs font-medium gap-2 text-zinc-700 dark:text-zinc-300 shadow-sm dark:shadow-none">
                       <Triangle className="h-3.5 w-3.5 text-zinc-500" />
-                      {newTaskData.estimate ? newTaskData.estimate : "Est"}
+                      {newTaskData.estimate ? `${newTaskData.estimate}h` : "Est"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[150px] p-2 bg-white dark:bg-[#1a1a1d] border border-zinc-200 dark:border-white/10 z-[100] shadow-xl" align="start">
@@ -439,7 +581,12 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-white dark:bg-[#1a1a1d] border border-zinc-200 dark:border-white/10 z-[100] shadow-xl" align="start">
-                    <Calendar mode="single" selected={newTaskData.startDate || undefined} onSelect={(d) => setNewTaskData({ ...newTaskData, startDate: d })} className="text-zinc-900 dark:text-zinc-300" />
+                    <Calendar mode="single" selected={newTaskData.startDate || undefined} onSelect={(d) =>
+                      setNewTaskData({
+                        ...newTaskData,
+                        startDate: d ?? null // ✅
+                      })
+                    } className="text-zinc-900 dark:text-zinc-300" />
                   </PopoverContent>
                 </Popover>
 
@@ -452,7 +599,12 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-white dark:bg-[#1a1a1d] border border-zinc-200 dark:border-white/10 z-[100] shadow-xl" align="start">
-                    <Calendar mode="single" selected={newTaskData.endDate || undefined} onSelect={(d) => setNewTaskData({ ...newTaskData, endDate: d })} className="text-zinc-900 dark:text-zinc-300" />
+                    <Calendar mode="single" selected={newTaskData.endDate || undefined} onSelect={(d) =>
+                      setNewTaskData({
+                        ...newTaskData,
+                        endDate: d ?? null
+                      })
+                    } className="text-zinc-900 dark:text-zinc-300" />
                   </PopoverContent>
                 </Popover>
 
@@ -460,11 +612,15 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
 
               <div className="flex items-center gap-3">
                 <Button variant="ghost" onClick={() => setIsCreateOpen(false)} className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/5 h-8 text-xs font-medium">Hủy bỏ</Button>
-                <Button onClick={handleCreateTask} className="h-8 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white text-xs font-bold px-4 rounded shadow-md border-0">Lưu</Button>
+                <Button onClick={handleSubmitTask} disabled={isSaving}>
+                  {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  {editTask ? "Lưu thay đổi" : "Lưu"}
+                </Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
+
 
         {/* DETAIL PANEL */}
         {selectedTask && (

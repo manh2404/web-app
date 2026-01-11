@@ -8,7 +8,9 @@ export interface IWorkItem extends Document {
   priority: 'Low' | 'Medium' | 'High';
   project: mongoose.Types.ObjectId; // Link tới Project
   assignee?: mongoose.Types.ObjectId; // Link tới User
+  startDate?: Date;
   dueDate?: Date;
+  estimate?: number;
   createdAt: Date;
   updatedAt: Date;
   taskId: string;
@@ -48,9 +50,16 @@ const WorkItemSchema: Schema<IWorkItem> = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User', // Quan trọng: Phải khớp tên model User
     },
+    startDate: {
+      type: Date,
+    },
     dueDate: {
       type: Date,
     },
+    estimate: {
+      type: Number,
+    },
+
   },
   {
     timestamps: true, // Tự động tạo createdAt và updatedAt
