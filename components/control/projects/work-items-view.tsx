@@ -9,7 +9,7 @@ import Link from 'next/link';
 // Icons
 import {
   Plus, User, Calendar as CalendarIcon, Triangle, ArrowLeft, GitMerge, Loader2, X,
-  CheckCircle2, AlertCircle, Clock, HelpCircle, MoreHorizontal, ArrowUpCircle, Circle
+  CheckCircle2, Clock, HelpCircle, MoreHorizontal, ArrowUpCircle, Circle
 } from 'lucide-react';
 
 // UI
@@ -25,8 +25,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 // Import Shared Logic
-import { Task, columns, estimates, mockMembers, MOCK_TASKS } from './project-data';
+import { Task, columns, estimates, mockMembers } from './project-data';
 import { TaskDetailPanel } from './project-detail-layout';
+import axios from 'axios';
+
 
 // --- DATA OPTIONS ---
 const STATUS_OPTIONS = [
@@ -34,21 +36,19 @@ const STATUS_OPTIONS = [
   { value: 'todo', label: 'To Do', icon: Circle, color: 'text-slate-500' },
   { value: 'in_progress', label: 'In Progress', icon: Clock, color: 'text-blue-500' },
   { value: 'done', label: 'Done', icon: CheckCircle2, color: 'text-green-600' },
-  { value: 'cancle', label: 'Canceled', icon: X, color: 'text-red-500' },
+  { value: 'canceled', label: 'Canceled', icon: X, color: 'text-red-500' },
 ];
 
 const IMPORTANCE_OPTIONS = [
-  { value: 'urgent', label: 'Urgent', icon: AlertCircle, color: 'text-red-600' },
   { value: 'high', label: 'High', icon: ArrowUpCircle, color: 'text-orange-500' },
   { value: 'medium', label: 'Medium', icon: MoreHorizontal, color: 'text-blue-500' },
   { value: 'low', label: 'Low', icon: ArrowUpCircle, color: 'text-slate-500 rotate-180' },
-  { value: 'none', label: 'None', icon: Circle, color: 'text-slate-400' },
 ];
 
 export function WorkItemsView({ projectId: _projectId }: { projectId: string }) {
   const [winReady, setWinReady] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [parentTaskForSub, setParentTaskForSub] = useState<Task | null>(null);
 
@@ -57,23 +57,56 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
     title: string; description: string; status: string; importance: string;
     assignee: any | null; startDate: Date | null; endDate: Date | null; estimate: number | null;
   }>({
-    title: "", description: "", status: "todo", importance: "none",
+    title: "", description: "", status: "todo", importance: "medium",
     assignee: null, startDate: null, endDate: null, estimate: null
   });
 
   useEffect(() => { setWinReady(true); }, []);
 
-  const onDragEnd = (result: DropResult) => {
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const res = await axios.get(
+            `/api/projects/${_projectId}/workitems`
+        );
+        setTasks(res.data);
+      } catch (err) {
+        console.error(err);
+        toast.error("Không tải được công việc");
+      }
+    };
+
+    fetchTasks();
+  }, [_projectId]);
+
+  const onDragEnd = async (result: DropResult) => {
     const { destination, draggableId } = result;
     if (!destination) return;
-    if (destination.droppableId === 'canceled') {
-      setTasks(tasks.filter(t => t._id !== draggableId));
-      if (selectedTask?._id === draggableId) setSelectedTask(null);
-      toast.success("Đã hủy công việc");
-      return;
+
+    if (destination.droppableId === result.source.droppableId) return;
+
+    // 1. Optimistic UI
+    setTasks(prev =>
+        prev.map(t =>
+            t._id === draggableId
+                ? { ...t, status: destination.droppableId }
+                : t
+        )
+    );
+
+    // 2. Lưu DB qua API CŨ
+    try {
+      await axios.patch(
+          `/api/projects/${_projectId}/workitems`,
+          {
+            workItemId: draggableId,
+            status: destination.droppableId
+          }
+      );
+    } catch (err) {
+      toast.error("Không lưu được trạng thái");
+      console.error(err);
     }
-    if (destination.droppableId === result.source.droppableId && destination.index === result.source.index) return;
-    setTasks(tasks.map(t => t._id === draggableId ? { ...t, status: destination.droppableId } : t));
   };
 
   const updateTask = (taskId: string, field: string, value: any) => {
@@ -81,25 +114,39 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
     if (selectedTask?._id === taskId) { setSelectedTask(prev => prev ? { ...prev, [field]: value } : null); }
   };
 
-  const handleCreateTask = () => {
-    if (!newTaskData.title) return toast.error("Vui lòng nhập tiêu đề");
-    const newTask: Task = {
-      _id: Math.random().toString(),
-      taskId: `WEB-${Math.floor(Math.random() * 900) + 100}`,
-      title: newTaskData.title, description: newTaskData.description, status: newTaskData.status,
-      assignee: newTaskData.assignee, creator: mockMembers[0], estimate: newTaskData.estimate,
-      startDate: newTaskData.startDate, endDate: newTaskData.endDate,
-      parentId: parentTaskForSub ? parentTaskForSub._id : null
-    };
-    setTasks([newTask, ...tasks]);
-    setIsCreateOpen(false);
-    toast.success(parentTaskForSub ? "Đã tạo công việc con" : "Đã tạo công việc mới");
+  const handleCreateTask = async () => {
+    if (!newTaskData.title) {
+      return toast.error("Vui lòng nhập tiêu đề");
+    }
+
+    try {
+      const res = await axios.post(
+          `/api/projects/${_projectId}/workitems`,
+          {
+            title: newTaskData.title,
+            description: newTaskData.description,
+            status: newTaskData.status,
+            priority: newTaskData.importance,
+            assignee: newTaskData.assignee?._id || null,
+            startDate: newTaskData.startDate,
+            dueDate: newTaskData.endDate,
+          }
+      );
+
+      setTasks(prev => [res.data, ...prev]);
+
+      setIsCreateOpen(false);
+      toast.success("Đã tạo công việc mới");
+    } catch (err) {
+      console.error(err);
+      toast.error("Tạo công việc thất bại");
+    }
   };
 
   const openCreateDialog = (status = "todo", parent: Task | null = null) => {
     setParentTaskForSub(parent);
     setNewTaskData({
-      title: "", description: "", status, importance: "none",
+      title: "", description: "", status, importance: "medium",
       assignee: null, startDate: null, endDate: null, estimate: null
     });
     setIsCreateOpen(true);
@@ -109,7 +156,7 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
   const getParentInfo = (parentId: string) => { const parent = tasks.find(t => t._id === parentId); return parent ? `${parent.taskId} - ${parent.title}` : "Unknown Parent"; };
 
   const createStatus = STATUS_OPTIONS.find(s => s.value === newTaskData.status) || STATUS_OPTIONS[1];
-  const createImportance = IMPORTANCE_OPTIONS.find(i => i.value === newTaskData.importance) || IMPORTANCE_OPTIONS[4];
+  const createImportance = IMPORTANCE_OPTIONS.find(i => i.value === newTaskData.importance) || IMPORTANCE_OPTIONS[1];
 
   const stopProp = (e: React.MouseEvent | React.PointerEvent) => { e.stopPropagation(); };
 
