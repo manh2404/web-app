@@ -65,10 +65,10 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
   // Form State
   const [newTaskData, setNewTaskData] = useState<{
     title: string; description: string; status: string; priority: 'low' | 'medium' | 'high';
-    assignee: any | null; startDate: Date | null; endDate: Date | null; estimate: number | null;
+    assignee: any | null; startDate: Date | null; dueDate: Date | null; estimate: number | null;
   }>({
     title: "", description: "", status: "todo", priority: "medium",
-    assignee: null, startDate: null, endDate: null, estimate: null
+    assignee: null, startDate: null, dueDate: null, estimate: null
   });
 
   useEffect(() => { setWinReady(true); }, []);
@@ -120,6 +120,25 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
   };
 
   const updateTask = async (taskId: string, field: string, value: any) => {
+    const currentTask = tasks.find(t => t._id === taskId);
+    if (!currentTask) return;
+
+    if (field === 'startDate' && currentTask.dueDate) {
+      if (toDateOnly(value) > toDateOnly(new Date(currentTask.dueDate))) {
+        toast.error("Ngày bắt đầu không được sau ngày kết thúc");
+        return;
+      }
+    }
+
+    if (field === 'dueDate' && currentTask.startDate) {
+      if (toDateOnly(value) < toDateOnly(new Date(currentTask.startDate))) {
+        toast.error("Ngày kết thúc không được trước ngày bắt đầu");
+        return;
+      }
+    }
+
+
+    // ✅ Optimistic UI
     setTasks(prev =>
       prev.map(t =>
         t._id === taskId ? { ...t, [field]: value } : t
@@ -130,6 +149,7 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
       setSelectedTask(prev => prev ? { ...prev, [field]: value } : null);
     }
 
+    // ❌ KHÔNG XÓA ĐOẠN NÀY
     const payload: any = {
       workItemId: taskId,
       [field]: value
@@ -137,6 +157,10 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
 
     if (field === 'assignee') {
       payload[field] = value?._id || null;
+    }
+
+    if (field === 'startDate' || field === 'dueDate') {
+      payload[field] = normalizeDate(value);
     }
 
     try {
@@ -149,12 +173,15 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
       toast.error("Không lưu được thay đổi");
     }
   };
+
   const normalizeDate = (d: Date | null) => {
     if (!d) return null;
     const date = new Date(d);
     date.setHours(12, 0, 0, 0); // ✅ FIX TIMEZONE (quan trọng)
     return date;
   };
+  const toDateOnly = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
 
   const handleSubmitTask = async () => {
@@ -163,11 +190,12 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
     }
     if (
       newTaskData.startDate &&
-      newTaskData.endDate &&
-      newTaskData.endDate < newTaskData.startDate
+      newTaskData.dueDate &&
+      toDateOnly(newTaskData.dueDate) < toDateOnly(newTaskData.startDate)
     ) {
       return toast.error("Ngày kết thúc không được trước ngày bắt đầu");
     }
+
 
     try {
       setIsSaving(true);
@@ -179,7 +207,7 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
         priority: newTaskData.priority,
         assignee: newTaskData.assignee?._id || null,
         startDate: normalizeDate(newTaskData.startDate),
-        dueDate: normalizeDate(newTaskData.endDate),
+        dueDate: normalizeDate(newTaskData.dueDate),
         estimate: newTaskData.estimate,
       };
 
@@ -223,7 +251,7 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
         priority: "medium",
         assignee: null,
         startDate: null,
-        endDate: null,
+        dueDate: null,
         estimate: null
       });
 
@@ -244,7 +272,7 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
     setParentTaskForSub(parent);
     setNewTaskData({
       title: "", description: "", status, priority: "medium",
-      assignee: null, startDate: null, endDate: null, estimate: null
+      assignee: null, startDate: null, dueDate: null, estimate: null
     });
     setIsCreateOpen(true);
   };
@@ -340,7 +368,7 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                                                 priority: task.priority || "medium",
                                                 assignee: task.assignee || null,
                                                 startDate: task.startDate ? new Date(task.startDate) : null,
-                                                endDate: task.endDate ? new Date(task.endDate) : null,
+                                                dueDate: task.dueDate ? new Date(task.dueDate) : null,
                                                 estimate: task.estimate || null
                                               });
                                               setIsCreateOpen(true);
@@ -425,10 +453,10 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                                     )}
 
                                     {/* [CẬP NHẬT] End Date */}
-                                    {task.endDate && (
+                                    {task.dueDate && (
                                       <div className="flex items-center gap-1 text-[10px] text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-white/5 px-2 py-0.5 rounded border border-zinc-200 dark:border-white/5">
                                         <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500">E:</span>
-                                        {format(new Date(task.endDate), "dd/MM/yyyy")}
+                                        {format(new Date(task.dueDate), "dd/MM/yyyy")}
                                       </div>
                                     )}
                                   </div>
@@ -599,7 +627,9 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                       mode="single"
                       selected={newTaskData.startDate || undefined}
                       onSelect={(d) => {
-                        if (d && newTaskData.endDate && d > newTaskData.endDate) {
+
+
+                        if (d && newTaskData.dueDate && toDateOnly(d) > toDateOnly(newTaskData.dueDate)) {
                           toast.error("Ngày bắt đầu không được sau ngày kết thúc");
                           return;
                         }
@@ -618,22 +648,23 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                   <PopoverTrigger asChild>
                     <Button variant="outline" size="sm" className="h-8 border-dashed border-zinc-300 dark:border-white/10 bg-white dark:bg-transparent hover:bg-zinc-100 dark:hover:bg-white/5 text-xs font-medium gap-2 text-zinc-700 dark:text-zinc-300 shadow-sm dark:shadow-none">
                       <CalendarIcon className="h-3.5 w-3.5 text-zinc-500" />
-                      {newTaskData.endDate ? format(newTaskData.endDate, "dd/MM/yyyy") : "End"}
+                      {newTaskData.dueDate ? format(newTaskData.dueDate, "dd/MM/yyyy") : "End"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-white dark:bg-[#1a1a1d] border border-zinc-200 dark:border-white/10 z-[100] shadow-xl" align="start">
                     <Calendar
                       mode="single"
-                      selected={newTaskData.endDate || undefined}
+                      selected={newTaskData.dueDate || undefined}
                       onSelect={(d) => {
-                        if (d && newTaskData.startDate && d < newTaskData.startDate) {
+                        if (d && newTaskData.startDate && toDateOnly(d) < toDateOnly(newTaskData.startDate)) {
                           toast.error("Ngày kết thúc không được trước ngày bắt đầu");
                           return;
                         }
 
+
                         setNewTaskData({
                           ...newTaskData,
-                          endDate: d ?? null
+                          dueDate: d ?? null
                         });
                       }}
                     />

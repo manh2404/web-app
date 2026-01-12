@@ -18,7 +18,7 @@ export interface Task {
   creator: Member | null;
   estimate: number | null;
   startDate: Date | null;
-  endDate: Date | null;
+  dueDate: Date | null;
   parentId?: string | null;
 }
 
@@ -52,10 +52,10 @@ export const mockMembers: Member[] = [
 // export const MOCK_TASKS: Task[] = [
 //   {
 //     _id: '1', taskId: 'WEB-101', title: 'Thiết kế giao diện trang chủ', status: 'todo',
-//     assignee: mockMembers[0], creator: mockMembers[0], estimate: '4h', startDate: new Date(), endDate: new Date(), parentId: null
+//     assignee: mockMembers[0], creator: mockMembers[0], estimate: '4h', startDate: new Date(), dueDate: new Date(), parentId: null
 //   },
 //   {
 //     _id: '2', taskId: 'WEB-102', title: 'API đăng nhập & đăng ký', status: 'in_progress',
-//     assignee: mockMembers[1], creator: mockMembers[0], estimate: '2h', startDate: new Date(), endDate: new Date(), parentId: null
+//     assignee: mockMembers[1], creator: mockMembers[0], estimate: '2h', startDate: new Date(), dueDate: new Date(), parentId: null
 //   },
 // ];

@@ -127,8 +127,6 @@ export async function POST(
     const responseTask = {
       ...newTask.toObject(),
       status: body.status, // Trả lại đúng status mà frontend vừa gửi lên để nó tự update UI
-      endDate: newTask.dueDate,
-      importance: body.priority
     };
 
     return NextResponse.json(responseTask);
@@ -184,18 +182,35 @@ export async function PATCH(
         { status: 400 }
       );
     }
+    // 🔥 VALIDATE DATE TRƯỚC KHI UPDATE
+    const existingTask = await WorkItem.findOne({
+      _id: workItemId,
+      project: projectId
+    });
 
-    if (updateData.startDate && updateData.dueDate) {
-      const start = new Date(updateData.startDate);
-      const end = new Date(updateData.dueDate);
-
-      if (start > end) {
-        return NextResponse.json(
-          { error: 'Ngày kết thúc không được trước ngày bắt đầu' },
-          { status: 400 }
-        );
-      }
+    if (!existingTask) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      );
     }
+
+    const startDate = updateData.startDate
+      ? new Date(updateData.startDate)
+      : existingTask.startDate;
+
+    const dueDate = updateData.dueDate
+      ? new Date(updateData.dueDate)
+      : existingTask.dueDate;
+
+    if (startDate && dueDate && startDate > dueDate) {
+      return NextResponse.json(
+        { error: 'Ngày kết thúc không được trước ngày bắt đầu' },
+        { status: 400 }
+      );
+    }
+
+
 
 
     const updatedTask = await WorkItem.findOneAndUpdate(
@@ -216,7 +231,6 @@ export async function PATCH(
     return NextResponse.json({
       ...obj,
       status: toFrontendStatus(obj.status),
-      endDate: obj.dueDate
     });
 
   } catch (error: any) {
