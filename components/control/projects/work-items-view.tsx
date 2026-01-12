@@ -50,6 +50,14 @@ const IMPORTANCE_OPTIONS: {
   { value: 'low', label: 'Low', icon: ArrowUpCircle, color: 'text-slate-500 rotate-180' },
 ];
 
+// RULE KÉO GIỮA CÁC CỘT
+const STATUS_TRANSITIONS: Record<string, string[]> = {
+  backlog: ['todo', 'canceled'],
+  todo: ['canceled', 'in_progress', 'done'],
+  in_progress: ['done', 'todo', 'canceled'],
+  done: ['todo'],
+  canceled: ['todo'],
+};
 
 export function WorkItemsView({ projectId: _projectId }: { projectId: string }) {
   const [winReady, setWinReady] = useState(false);
@@ -90,27 +98,37 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
   }, [_projectId]);
 
   const onDragEnd = async (result: DropResult) => {
-    const { destination, draggableId } = result;
+    const { destination, source, draggableId } = result;
     if (!destination) return;
 
-    if (destination.droppableId === result.source.droppableId) return;
+    const fromStatus = source.droppableId;
+    const toStatus = destination.droppableId;
 
-    // 1. Optimistic UI
+    if (fromStatus === toStatus) return;
+
+    // CHECK RULE KÉO
+    const allowedNext = STATUS_TRANSITIONS[fromStatus] || [];
+    if (!allowedNext.includes(toStatus)) {
+      toast.error("Không thể kéo công việc sang trạng thái này");
+      return;
+    }
+
+    // Optimistic UI
     setTasks(prev =>
         prev.map(t =>
             t._id === draggableId
-                ? { ...t, status: destination.droppableId }
+                ? { ...t, status: toStatus }
                 : t
         )
     );
 
-    // 2. Lưu DB qua API CŨ
+    // Lưu DB
     try {
       await axios.patch(
           `/api/projects/${_projectId}/workitems`,
           {
             workItemId: draggableId,
-            status: destination.droppableId
+            status: toStatus
           }
       );
     } catch (err) {
