@@ -173,3 +173,14 @@ div[data-sidebar="sidebar"] { background-color: var(--sidebar) !important; borde
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 }
+input::-ms-reveal,
+input::-ms-clear {
+    display: none !important;
+}
+
+input[type="password"]::-webkit-textfield-decoration-container,
+input[type="password"]::-webkit-inner-spin-button,
+input[type="password"]::-webkit-clear-button {
+    display: none !important;
+    appearance: none !important;
+}

@@ -1,6 +1,5 @@
-import mongoose, { Document, Model, SchemaTypes } from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
 import bcrypt from 'bcrypt';
-import { IRole } from '@/models/role.model';
 
 export interface IUser extends Document {
   firstname: string;
@@ -9,55 +8,95 @@ export interface IUser extends Document {
   email: string;
   phone: string;
   address: string[];
-  roles: [IRole];
+  roles: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
   isGod: boolean;
-  validPassword: (password: string) => Promise<boolean>;
-  encryptPassword: (password: string) => Promise<string>;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
+
+  setPassword(password: string): Promise<void>;
+  validPassword(password: string): Promise<boolean>;
 }
 
-const UserSchema = new mongoose.Schema<IUser>({
+const UserSchema = new Schema<IUser>({
   firstname: {
     type: String,
+    required: true,
+    trim: true,
   },
   lastname: {
     type: String,
+    required: true,
+    trim: true,
   },
   password: {
     type: String,
     required: true,
+    select: false,
   },
   email: {
     type: String,
+    required: true,
+    unique: true,
+    index: true,
+    trim: true,
+    lowercase: true,
   },
   phone: {
     type: String,
     required: true,
+    unique: true,
+    index: true,
   },
   isGod: {
     type: Boolean,
-    required: true,
-    default: true,
+    required: false,
+    default: false,
   },
-  roles: {
-    type: [SchemaTypes.ObjectId],
-    required: true,
-    ref: 'Role',
-    default: null,
-  },
+  roles: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'Role',
+      required: true,
+    },
+  ],
   address: {
     type: [String],
   },
+  resetPasswordToken: {
+    type: String,
+    select: false,
+  },
+  resetPasswordExpires: {
+    type: Date,
+    select: false,
+  },
 }, { timestamps: true });
 
-UserSchema.methods.encryptPassword = async (password: string) => {
-  return bcrypt.hash(password, bcrypt.genSaltSync(10));
+UserSchema.methods.setPassword = async function (password: string) {
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(password, salt);
 };
-UserSchema.methods.validPassword = async function(password: string) {
+UserSchema.methods.validPassword = async function (password: string) {
   return bcrypt.compare(password, this.password);
 };
 
-const UserModel: Model<IUser> = mongoose.models.User || mongoose.model('User', UserSchema);
+UserSchema.pre('save', function (next) {
+  if (this.isModified('password')) {
+    // bcrypt hash luôn bắt đầu bằng $2a$ hoặc $2b$
+    if (!this.password.startsWith('$2')) {
+      return next(
+        new Error(
+          'Password must be hashed using setPassword() before saving'
+        )
+      );
+    }
+  }
+  next();
+});
 
-export default UserModel;
+
+const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+
+export default User;
