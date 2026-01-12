@@ -80,7 +80,6 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
   });
 
   useEffect(() => { setWinReady(true); }, []);
-
   useEffect(() => {
     const fetchTasks = async () => {
       try {
