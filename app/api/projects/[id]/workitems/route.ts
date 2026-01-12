@@ -70,6 +70,19 @@ export async function POST(
     const { id: projectId } = await params;
     const body = await req.json();
 
+    if (body.startDate && body.dueDate) {
+      const start = new Date(body.startDate);
+      const end = new Date(body.dueDate);
+
+      if (start > end) {
+        return NextResponse.json(
+          { error: 'Ngày kết thúc không được trước ngày bắt đầu' },
+          { status: 400 }
+        );
+      }
+    }
+
+
     // 1. Tìm Project để lấy Key & TaskCount
     const project = await Project.findById(projectId);
     if (!project) {
@@ -170,6 +183,18 @@ export async function PATCH(
         { error: 'No fields to update' },
         { status: 400 }
       );
+    }
+
+    if (updateData.startDate && updateData.dueDate) {
+      const start = new Date(updateData.startDate);
+      const end = new Date(updateData.dueDate);
+
+      if (start > end) {
+        return NextResponse.json(
+          { error: 'Ngày kết thúc không được trước ngày bắt đầu' },
+          { status: 400 }
+        );
+      }
     }
 
 

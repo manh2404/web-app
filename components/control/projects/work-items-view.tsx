@@ -149,10 +149,24 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
       toast.error("Không lưu được thay đổi");
     }
   };
+  const normalizeDate = (d: Date | null) => {
+    if (!d) return null;
+    const date = new Date(d);
+    date.setHours(12, 0, 0, 0); // ✅ FIX TIMEZONE (quan trọng)
+    return date;
+  };
+
 
   const handleSubmitTask = async () => {
     if (!newTaskData.title) {
       return toast.error("Vui lòng nhập tiêu đề");
+    }
+    if (
+      newTaskData.startDate &&
+      newTaskData.endDate &&
+      newTaskData.endDate < newTaskData.startDate
+    ) {
+      return toast.error("Ngày kết thúc không được trước ngày bắt đầu");
     }
 
     try {
@@ -164,8 +178,8 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
         status: newTaskData.status,
         priority: newTaskData.priority,
         assignee: newTaskData.assignee?._id || null,
-        startDate: newTaskData.startDate,
-        dueDate: newTaskData.endDate,
+        startDate: normalizeDate(newTaskData.startDate),
+        dueDate: normalizeDate(newTaskData.endDate),
         estimate: newTaskData.estimate,
       };
 
@@ -581,12 +595,21 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-white dark:bg-[#1a1a1d] border border-zinc-200 dark:border-white/10 z-[100] shadow-xl" align="start">
-                    <Calendar mode="single" selected={newTaskData.startDate || undefined} onSelect={(d) =>
-                      setNewTaskData({
-                        ...newTaskData,
-                        startDate: d ?? null // ✅
-                      })
-                    } className="text-zinc-900 dark:text-zinc-300" />
+                    <Calendar
+                      mode="single"
+                      selected={newTaskData.startDate || undefined}
+                      onSelect={(d) => {
+                        if (d && newTaskData.endDate && d > newTaskData.endDate) {
+                          toast.error("Ngày bắt đầu không được sau ngày kết thúc");
+                          return;
+                        }
+
+                        setNewTaskData({
+                          ...newTaskData,
+                          startDate: d ?? null
+                        });
+                      }}
+                    />
                   </PopoverContent>
                 </Popover>
 
@@ -599,12 +622,22 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-white dark:bg-[#1a1a1d] border border-zinc-200 dark:border-white/10 z-[100] shadow-xl" align="start">
-                    <Calendar mode="single" selected={newTaskData.endDate || undefined} onSelect={(d) =>
-                      setNewTaskData({
-                        ...newTaskData,
-                        endDate: d ?? null
-                      })
-                    } className="text-zinc-900 dark:text-zinc-300" />
+                    <Calendar
+                      mode="single"
+                      selected={newTaskData.endDate || undefined}
+                      onSelect={(d) => {
+                        if (d && newTaskData.startDate && d < newTaskData.startDate) {
+                          toast.error("Ngày kết thúc không được trước ngày bắt đầu");
+                          return;
+                        }
+
+                        setNewTaskData({
+                          ...newTaskData,
+                          endDate: d ?? null
+                        });
+                      }}
+                    />
+
                   </PopoverContent>
                 </Popover>
 
