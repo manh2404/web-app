@@ -45,6 +45,7 @@ const IMPORTANCE_OPTIONS = [
   { value: 'none', label: 'None', icon: Circle, color: 'text-slate-400' },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function WorkItemsView({ projectId: _projectId }: { projectId: string }) {
   const [winReady, setWinReady] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -424,6 +425,7 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
           <div className="absolute inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedTask(null)}>
             <div onClick={(e) => e.stopPropagation()}>
               <TaskDetailPanel
+                  projectId={_projectId}
                 task={selectedTask}
                 tasks={tasks}
                 onClose={() => setSelectedTask(null)}

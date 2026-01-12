@@ -15,7 +15,7 @@ export interface Task {
   status: string;
   assignee: Member | null;
   creator: Member | null;
-  estimate: string | null;
+  estimate: string | null | undefined;
   startDate: Date | null;
   endDate: Date | null;
   parentId?: string | null;

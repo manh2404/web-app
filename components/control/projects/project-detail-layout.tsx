@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, {useEffect, useState, useRef } from 'react';
 import { format, formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 import { toast } from 'sonner';
@@ -22,11 +22,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Command, CommandEmpty, CommandInput, CommandList, CommandItem, CommandGroup } from "@/components/ui/command";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
 
 // Shared Data
 import { Task, Activity, ActivityType, columns, estimates, mockMembers } from './project-data';
+//test
+type AttachmentRow = {
+  _id: string;
+  fileName: string;
+  size?: number;
+  type?: string;
+  path: string;
+  createdAt?: string;
+  downloadUrl?: string;
+};
 
 // --- EXPORTED HELPER: ATTRIBUTE BUTTON (Để file cha dùng ké cho form Create) ---
 export const AttributeButton = ({
@@ -99,22 +109,107 @@ const RichTextEditor = ({ onSend }: { onSend: (html: string) => void }) => {
 
 // --- MAIN EXPORT: TASK DETAIL PANEL ---
 export function TaskDetailPanel({
-                                  task, tasks, onClose, onUpdate, onCreateSubtask
+                                  projectId,
+                                  task,
+                                  tasks,
+                                  onClose,
+                                  onUpdate,
+                                  onCreateSubtask,
                                 }: {
-  task: Task, tasks: Task[], onClose: () => void, onUpdate: (id: string, field: string, val: any) => void, onCreateSubtask: () => void
+  projectId: string;
+  task: Task;
+  tasks: Task[];
+  onClose: () => void;
+  onUpdate: (id: string, field: string, val: any) => void;
+  onCreateSubtask: () => void;
 }) {
-  const subtasks = tasks.filter(t => t.parentId === task._id);
+  const subtasks = tasks.filter((t) => t.parentId === task._id);
   const [isSubtasksExpanded, setIsSubtasksExpanded] = useState(true);
   const headerFileRef = useRef<HTMLInputElement>(null);
 
   const [activities, setActivities] = useState<Activity[]>([
-    { id: '1', type: 'create', user: mockMembers[0], content: 'đã tạo công việc này', timestamp: new Date(Date.now() - 172800000) },
-    { id: '2', type: 'assign', user: mockMembers[0], content: 'đã gán cho <b>Nguyễn Văn A</b>', timestamp: new Date(Date.now() - 86400000) },
-    { id: '3', type: 'comment', user: mockMembers[1], content: 'Task này cần thêm thông tin API.', timestamp: new Date(Date.now() - 3600000) },
-    { id: '4', type: 'state', user: mockMembers[0], content: 'đã chuyển trạng thái sang <b>In Progress</b>', timestamp: new Date(Date.now() - 120000) }
+    {
+      id: "1",
+      type: "create",
+      user: mockMembers[0],
+      content: "đã tạo công việc này",
+      timestamp: new Date(Date.now() - 172800000),
+    },
+    {
+      id: "2",
+      type: "assign",
+      user: mockMembers[0],
+      content: "đã gán cho <b>Nguyễn Văn A</b>",
+      timestamp: new Date(Date.now() - 86400000),
+    },
+    {
+      id: "3",
+      type: "comment",
+      user: mockMembers[1],
+      content: "Task này cần thêm thông tin API.",
+      timestamp: new Date(Date.now() - 3600000),
+    },
+    {
+      id: "4",
+      type: "state",
+      user: mockMembers[0],
+      content: "đã chuyển trạng thái sang <b>In Progress</b>",
+      timestamp: new Date(Date.now() - 120000),
+    },
   ]);
 
-  const handleSendComment = (html: string) => {
+  const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+
+  const fetchAttachments = async () => {
+    setLoadingFiles(true);
+    try {
+      const res = await fetch(
+          `/api/projects/${projectId}/workitems/${task._id}/attachments`,
+          { cache: "no-store" }
+      );
+
+      // nếu API có thể trả error status, check luôn để dễ debug
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `HTTP ${res.status}`);
+      }
+
+      const json = await res.json();
+      setAttachments(Array.isArray(json) ? json : (json?.data ?? []));
+    } catch (e) {
+      console.error("fetchAttachments error:", e);
+      toast.error("Không tải được danh sách file");
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  const fetchActivities = async () => {
+    try {
+      const res = await fetch(
+          `/api/projects/${projectId}/workitems/${task._id}/activities`,
+          { cache: "no-store" }
+      );
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `HTTP ${res.status}`);
+      }
+
+      const json = await res.json();
+      if (json?.data) setActivities(json.data);
+    } catch (e) {
+      console.error("fetchActivities error:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (!projectId || !task?._id) return;
+    fetchAttachments();
+    fetchActivities();
+  }, [projectId, task?._id]);
+   const handleSendComment = (html: string) => {
     const newActivity: Activity = { id: Math.random().toString(), type: 'comment', user: mockMembers[0], content: html, timestamp: new Date() };
     setActivities([...activities, newActivity]);
     toast.success("Đã gửi bình luận");
@@ -163,6 +258,43 @@ export function TaskDetailPanel({
           <input type="file" ref={headerFileRef} className="hidden" onChange={(e) => { if(e.target.files?.[0]) toast.success(`Đã đính kèm: ${e.target.files[0].name}`); }} />
           <Button onClick={handleHeaderAttach} variant="outline" className="h-8 text-xs bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white gap-2"><Paperclip className="h-3.5 w-3.5" /> Đính kèm</Button>
         </div>
+        {/* Attachments */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-bold text-white">File đính kèm</h3>
+
+          {loadingFiles ? (
+              <div className="text-xs text-zinc-500">Đang tải...</div>
+          ) : attachments.length === 0 ? (
+              <div className="text-xs text-zinc-500">Chưa có file</div>
+          ) : (
+              <div className="space-y-2">
+                {attachments.map((f) => (
+                    <div
+                        key={f._id}
+                        className="flex items-center justify-between gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/5"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm text-zinc-200 truncate">{f.fileName}</div>
+                        <div className="text-[11px] text-zinc-500">
+                          {f.type || "unknown"}
+                          {f.size ? ` • ${Math.round(f.size / 1024)} KB` : ""}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <a
+                            href={f.downloadUrl || `/api/files/${f._id}/download`}
+                            className="text-xs text-indigo-400 hover:text-indigo-300 underline"
+                        >
+                          Tải
+                        </a>
+                      </div>
+                    </div>
+                ))}
+              </div>
+          )}
+        </div>
+
 
         {/* Subtasks */}
         {subtasks.length > 0 && (
