@@ -8,8 +8,9 @@ export interface IWorkItem extends Document {
   priority: 'Low' | 'Medium' | 'High';
   project: mongoose.Types.ObjectId; // Link tới Project
   assignee?: mongoose.Types.ObjectId; // Link tới User
-     attachments: mongoose.Types.ObjectId[];
+  startDate?: Date;
   dueDate?: Date;
+  estimate?: number;
   createdAt: Date;
   updatedAt: Date;
   taskId: string;
@@ -19,6 +20,7 @@ export interface IWorkItem extends Document {
 const WorkItemSchema: Schema<IWorkItem> = new Schema(
   {
     taskId: { type: String, required: true, unique: true },
+
     title: {
       type: String,
       required: [true, 'Vui lòng nhập tên công việc'],
@@ -48,16 +50,16 @@ const WorkItemSchema: Schema<IWorkItem> = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User', // Quan trọng: Phải khớp tên model User
     },
+    startDate: {
+      type: Date,
+    },
     dueDate: {
       type: Date,
     },
-      attachments: [
-          {
-              type: Schema.Types.ObjectId,
-              ref: "Attachment",
-              index: true,
-          },
-      ],
+    estimate: {
+      type: Number,
+    },
+
   },
   {
     timestamps: true, // Tự động tạo createdAt và updatedAt

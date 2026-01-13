@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongo';
 import WorkItem from '@/models/work-item.model';
 import Project from '@/models/project.model';
-import User from '@/models/user.model';
 
-// Helper: Chuẩn hóa Status từ Frontend (todo -> Todo, in_progress -> In Progress)
-// Giúp tránh lỗi Validation của Mongoose
+
 const normalizeStatus = (status: string) => {
   const map: Record<string, string> = {
     'todo': 'Todo',
@@ -13,9 +11,22 @@ const normalizeStatus = (status: string) => {
     'in_progress': 'In Progress',
     'done': 'Done',
     'canceled': 'Cancel',
-    'cancel': 'Cancel'
+    'cancel': 'Cancel',
   };
-  return map[status.toLowerCase()] || 'Todo'; // Mặc định là Todo nếu không khớp
+
+  return map[status.toLowerCase()] || 'Todo';
+};
+
+const toFrontendStatus = (status: string) => {
+  const map: Record<string, string> = {
+    'Todo': 'todo',
+    'Backlog': 'backlog',
+    'In Progress': 'in_progress',
+    'Done': 'done',
+    'Cancel': 'canceled',
+  };
+
+  return map[status] || 'todo';
 };
 
 // 1. GET: Lấy danh sách Task
@@ -59,6 +70,19 @@ export async function POST(
     const { id: projectId } = await params;
     const body = await req.json();
 
+    if (body.startDate && body.dueDate) {
+      const start = new Date(body.startDate);
+      const end = new Date(body.dueDate);
+
+      if (start > end) {
+        return NextResponse.json(
+          { error: 'Ngày kết thúc không được trước ngày bắt đầu' },
+          { status: 400 }
+        );
+      }
+    }
+
+
     // 1. Tìm Project để lấy Key & TaskCount
     const project = await Project.findById(projectId);
     if (!project) {
@@ -91,6 +115,7 @@ export async function POST(
       status: dbStatus,
       project: projectId,
       taskId: newTaskId,
+      startDate: body.startDate,
       dueDate: body.dueDate,
       assignee: body.assignee || null
     });
@@ -101,7 +126,7 @@ export async function POST(
     // 7. Trả về task với format status mà Frontend hiểu ('todo' thay vì 'Todo')
     const responseTask = {
       ...newTask.toObject(),
-      status: body.status // Trả lại đúng status mà frontend vừa gửi lên để nó tự update UI
+      status: body.status, // Trả lại đúng status mà frontend vừa gửi lên để nó tự update UI
     };
 
     return NextResponse.json(responseTask);
@@ -110,6 +135,108 @@ export async function POST(
     console.error("❌ Lỗi TẠO TASK:", error); // Quan trọng: Xem lỗi chi tiết ở Terminal
     return NextResponse.json(
       { error: error.message || 'Failed to create task' },
+      { status: 500 }
+    );
+  }
+}
+
+// 3. PATCH: Edit task (update full fields)
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectToDatabase();
+    const { id: projectId } = await params;
+    const body = await req.json();
+
+    const { workItemId, ...fields } = body;
+
+    if (!workItemId) {
+      return NextResponse.json(
+        { error: 'Missing workItemId' },
+        { status: 400 }
+      );
+    }
+
+    const updateData: any = {};
+
+    // xử lý động từng field
+    for (const key in fields) {
+      const value = fields[key];
+
+      if (key === 'status') {
+        updateData.status = normalizeStatus(value);
+      } else if (key === 'priority' && value) {
+        updateData.priority =
+          value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+      } else if (key === 'assignee') {
+        updateData.assignee = value || null;
+      } else {
+        updateData[key] = value;
+      }
+    }
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+    // 🔥 VALIDATE DATE TRƯỚC KHI UPDATE
+    const existingTask = await WorkItem.findOne({
+      _id: workItemId,
+      project: projectId
+    });
+
+    if (!existingTask) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      );
+    }
+
+    const startDate = updateData.startDate
+      ? new Date(updateData.startDate)
+      : existingTask.startDate;
+
+    const dueDate = updateData.dueDate
+      ? new Date(updateData.dueDate)
+      : existingTask.dueDate;
+
+    if (startDate && dueDate && startDate > dueDate) {
+      return NextResponse.json(
+        { error: 'Ngày kết thúc không được trước ngày bắt đầu' },
+        { status: 400 }
+      );
+    }
+
+
+
+
+    const updatedTask = await WorkItem.findOneAndUpdate(
+      { _id: workItemId, project: projectId },
+      { $set: updateData },
+      { new: true }
+    ).populate('assignee', 'firstname lastname email');
+
+    if (!updatedTask) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      );
+    }
+
+    const obj = updatedTask.toObject();
+
+    return NextResponse.json({
+      ...obj,
+      status: toFrontendStatus(obj.status),
+    });
+
+  } catch (error: any) {
+    console.error("❌ Lỗi PATCH TASK:", error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to update task' },
       { status: 500 }
     );
   }

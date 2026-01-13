@@ -4,7 +4,10 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, Mail, Phone, Lock, Eye, EyeOff, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { POST_METHOD } from '@/lib/req';
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { signupSchema, SignupSchema } from '@/lib/schemas/signup.schema';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,28 +21,68 @@ export function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
-  const [formData, setFormData] = useState({
-    firstname: '', lastname: '', email: '', phone: '', password: '', confirmPassword: ''
+  const { register, handleSubmit, setError, formState: { errors },
+  } = useForm<SignupSchema>({
+    resolver: zodResolver(signupSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const emptyFields = Object.values(formData).some(x => x.trim() === '');
-    if (emptyFields) { toast.error("Vui lòng điền đầy đủ thông tin!"); return; }
-    if (formData.password !== formData.confirmPassword) { toast.error("Mật khẩu không khớp!"); return; }
+  const checkExists = async (field: 'email' | 'phone', value: string) => {
+    if (!value) return;
 
-    setLoading(true);
     try {
-      await POST_METHOD('/api/signup', formData);
-      toast.success("Đăng ký thành công!");
-      setTimeout(() => router.push('/login'), 1000);
+      const res = await fetch(`/api/check?field=${field}&value=${value}`);
+      const data = await res.json();
+
+      if (data.exists) {
+        setError(field, {
+          type: 'manual',
+          message: field === 'email'
+            ? 'Email đã tồn tại'
+            : 'Số điện thoại đã tồn tại',
+        });
+      }
     } catch (err) {
       console.error(err);
-      toast.error("Đăng ký thất bại.");
+    }
+  };
+
+  const onSubmit = async (data: SignupSchema) => {
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/signup', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const result = await res.json();
+
+        if (result?.errors) {
+          Object.entries(result.errors).forEach(([field, message]) => {
+            setError(field as keyof SignupSchema, {
+              type: 'server',
+              message: message as string,
+            });
+          });
+        }
+
+        toast.error('Đăng ký thất bại');
+        return;
+      }
+
+      toast.success('Đăng ký thành công!');
+      setTimeout(() => router.push('/login'), 800);
+    } catch (err) {
+      console.error(err);
+      toast.error('Có lỗi xảy ra');
     } finally {
       setLoading(false);
     }
   };
+
 
   // --- STYLE COMPACT & ORANGE THEME ---
   const inputClass = cn(
@@ -52,6 +95,7 @@ export function SignupForm() {
   // [ĐỔI MÀU] Icon khi focus sang màu Cam
   const iconClass = "absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-orange-500 transition-colors";
   const labelClass = "text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1.5 block uppercase tracking-wider";
+  const errorText = "mt-1 text-xs text-red-500";
 
   return (
     <Card className="w-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden rounded-xl">
@@ -78,58 +122,77 @@ export function SignupForm() {
       </div>
 
       <CardContent className="p-8">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
 
           {/* HÀNG 1: HỌ - TÊN - SĐT */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
             <div className="md:col-span-4">
-              <Label htmlFor="lastname" className={labelClass}>Họ</Label>
+              <Label className={labelClass}>Họ</Label>
               <div className="relative group">
                 <User className={iconClass} />
-                <Input id="lastname" placeholder="Nguyễn" className={inputClass} value={formData.lastname} onChange={e => setFormData({...formData, lastname: e.target.value})} required />
+                <Input {...register('lastname')} className={inputClass} />
               </div>
+              {errors.lastname && <p className={errorText}>{errors.lastname.message}</p>}
             </div>
+
             <div className="md:col-span-4">
-              <Label htmlFor="firstname" className={labelClass}>Tên</Label>
+              <Label className={labelClass}>Tên</Label>
               <div className="relative group">
                 <User className={iconClass} />
-                <Input id="firstname" placeholder="Văn An" className={inputClass} value={formData.firstname} onChange={e => setFormData({...formData, firstname: e.target.value})} required />
+                <Input {...register('firstname')} className={inputClass} />
               </div>
+              {errors.firstname && <p className={errorText}>{errors.firstname.message}</p>}
             </div>
+
             <div className="md:col-span-4">
-              <Label htmlFor="phone" className={labelClass}>Số điện thoại</Label>
+              <Label className={labelClass}>Số điện thoại</Label>
               <div className="relative group">
                 <Phone className={iconClass} />
-                <Input id="phone" type="tel" placeholder="Nhập số điện thoại" className={inputClass} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} required />
+                <Input{...register('phone')} className={inputClass} onBlur={(e) => checkExists('phone', e.target.value)} />
               </div>
+              {errors.phone && <p className={errorText}>{errors.phone.message}</p>}
             </div>
           </div>
 
           {/* HÀNG 2: EMAIL - MẬT KHẨU - CONFIRM */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
             <div className="md:col-span-6">
-              <Label htmlFor="email" className={labelClass}>Địa chỉ Email</Label>
+              <Label className={labelClass}>Email</Label>
               <div className="relative group">
                 <Mail className={iconClass} />
-                <Input id="email" type="email" placeholder="name@company.com" className={inputClass} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
+                <Input{...register('email')} className={inputClass} onBlur={(e) => checkExists('email', e.target.value)} />
               </div>
+              {errors.email && <p className={errorText}>{errors.email.message}</p>}
             </div>
             <div className="md:col-span-3">
-              <Label htmlFor="password" className={labelClass}>Mật khẩu</Label>
+              <Label className={labelClass}>Mật khẩu</Label>
               <div className="relative group">
                 <Lock className={iconClass} />
-                <Input id="password" type={showPass ? "text" : "password"} placeholder="••••••" className={cn(inputClass, "pr-9")} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required minLength={6} />
-              </div>
-            </div>
-            <div className="md:col-span-3">
-              <Label htmlFor="confirmPassword" className={labelClass}>Xác nhận mật khẩu</Label>
-              <div className="relative group">
-                <CheckCircle2 className={iconClass} />
-                <Input id="confirmPassword" type={showPass ? "text" : "password"} placeholder="••••••" className={cn(inputClass, "pr-9")} value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} required />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-2.5 top-2.5 text-slate-400 hover:text-orange-500 transition-colors focus:outline-none">
+                <Input type={showPass ? 'text' : 'password'}{...register('password')} className={cn(inputClass, 'pr-9')} />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-orange-500"
+                >
                   {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {errors.password && <p className={errorText}>{errors.password.message}</p>}
+            </div>
+            <div className="md:col-span-3">
+              <Label className={labelClass}>Xác nhận mật khẩu</Label>
+              <div className="relative group">
+                <CheckCircle2 className={iconClass} />
+                <Input type={showPass ? 'text' : 'password'}{...register('confirmPassword')} className={cn(inputClass, 'pr-9')} />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-orange-500"
+                >
+                  {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.confirmPassword && (<p className={errorText}>{errors.confirmPassword.message}</p>)}
             </div>
           </div>
 
