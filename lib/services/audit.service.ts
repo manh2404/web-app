@@ -1,7 +1,8 @@
 import { headers } from "next/headers";
 import dbConnect from "@/lib/mongo";
 import Audit from "@/models/audit.model";
-import { sendAuditMail } from "./mail.service";
+import { sendAuditMail, sendProjectMail } from "./mail.service";
+import Project from "@/models/project.model";
 
 type Actor = {
     id?: string;
@@ -17,6 +18,10 @@ type AuditInput = {
 
     before?: any;
     after?: any;
+
+    projectId?: string;
+    notifyProjectMembers?: boolean;
+    workItemId?: string;
 
     success?: boolean;
     errorMessage?: string;
@@ -81,6 +86,7 @@ export async function auditLog(input: AuditInput) {
         const userAgent = h.get("user-agent") || "";
 
         const doc = await Audit.create({
+            projectId: input.projectId,
             userId: input.actor?.id,
             email: input.actor?.email,
             role: input.actor?.role,
@@ -119,6 +125,31 @@ export async function auditLog(input: AuditInput) {
                     `AuditId: ${doc._id}\n` +
                     `Time: ${new Date().toISOString()}\n`;
                 await sendAuditMail(subject, text);
+                if (input.notifyProjectMembers && input.projectId) {
+                    try {
+                        const project = await Project.findById(input.projectId).lean();
+
+                        const emails: string[] =
+                            project?.members?.map((m: any) => m.email).filter(Boolean) || [];
+
+                        const to = emails.filter((e) => e !== input.actor?.email);
+                        if (!to.length) return;
+
+                        const key = `project:${input.projectId}:${input.action}`;
+                        if (shouldThrottle(key)) return;
+
+                        const subject = `[PROJECT] ${input.action}`;
+                        const text =
+                            `User: ${input.actor?.email || "anonymous"}\n` +
+                            `Action: ${input.action}\n` +
+                            `Resource: ${input.resource || "-"} ${input.resourceId || ""}\n` +
+                            `Time: ${new Date().toISOString()}\n`;
+
+                        await sendProjectMail(to, subject, text);
+                    } catch {
+                        // ignore
+                    }
+                }
             }
         }
     } catch {

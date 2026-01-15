@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongo';
 import WorkItem from '@/models/work-item.model';
 import Project from '@/models/project.model';
-
+import Activity from "@/models/activity.model";
+import { getAuthUser, requireAuth } from "@/lib/auth";
 
 const normalizeStatus = (status: string) => {
   const map: Record<string, string> = {
@@ -120,6 +121,21 @@ export async function POST(
       assignee: body.assignee || null
     });
 
+    // ghi log
+    const me = await getAuthUser();
+    requireAuth(me);
+    await Activity.create({
+      projectId,
+      workItemId: newTask._id,
+      type: "create",
+      actor: {
+        id: me.id,
+        name: me.name || me.email || "User",
+        email: me.email || "",
+      },
+      content: `Đã tạo công việc <b>${newTask.taskId}</b>: ${newTask.title}`,
+    });
+
     // 6. Cập nhật lại số đếm cho Project
     await Project.findByIdAndUpdate(projectId, { taskCount: newCount });
 
@@ -225,6 +241,28 @@ export async function PATCH(
         { status: 404 }
       );
     }
+
+    // ghi log
+    const me = await getAuthUser();
+    requireAuth(me);
+    if (updateData.status && updateData.status !== existingTask.status) {
+      await Activity.create({
+        projectId: projectId,
+        workItemId: workItemId,
+        type: "state",
+        actor: {
+          id: me.id,
+          name: me.name || me.email || "User",
+          email: me.email || "",
+        },
+        content: `Đã chuyển trạng thái từ <b>${existingTask.status}</b> → <b>${updateData.status}</b>`,
+        meta: {
+          from: existingTask.status,
+          to: updateData.status,
+        },
+      });
+    }
+
 
     const obj = updatedTask.toObject();
 

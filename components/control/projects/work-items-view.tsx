@@ -708,7 +708,8 @@ export function WorkItemsView({ projectId: _projectId }: { projectId: string }) 
           <div className="absolute inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedTask(null)}>
             <div onClick={(e) => e.stopPropagation()}>
               <TaskDetailPanel
-                task={selectedTask}
+                  projectId={_projectId}
+                  task={selectedTask}
                 tasks={tasks}
                 onClose={() => setSelectedTask(null)}
                 onUpdate={updateTask}

@@ -8,6 +8,7 @@ export async function GET(
     req: Request,
     { params }: { params: Promise<{ id: string; workItemId: string }> }
 ) {
+
     await dbConnect();
     const { id: projectId, workItemId } = await params;
 

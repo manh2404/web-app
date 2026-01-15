@@ -1,4 +1,11 @@
 export const AuditAction = {
+    // WorkItems
+    CREATE_WORKITEM: "CREATE_WORKITEM",
+    UPDATE_WORKITEM: "UPDATE_WORKITEM",
+    DELETE_WORKITEM: "DELETE_WORKITEM",
+    WORKITEM_CHANGE_STATUS: "WORKITEM_CHANGE_STATUS",
+    WORKITEM_ASSIGN: "WORKITEM_ASSIGN",
+    WORKITEM_ADD_COMMENT: "WORKITEM_ADD_COMMENT",
     // Auth
     LOGIN_SUCCESS: "LOGIN_SUCCESS",
     LOGIN_FAILED: "LOGIN_FAILED",
@@ -37,6 +44,8 @@ export const AuditResource = {
     PROJECT: "project",
     ATTACHMENT: "attachment",
     UI: "ui",
+    WORKITEM: "workitem",
+    COMMENT: "comment",
 } as const;
 
 export type AuditResourceType = (typeof AuditResource)[keyof typeof AuditResource];
