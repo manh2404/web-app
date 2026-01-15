@@ -25,6 +25,8 @@ import { Command, CommandEmpty, CommandInput, CommandList, CommandItem, CommandG
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
 
+import { Trash2 } from "lucide-react";
+
 // Shared Data
 import { Task, Activity, ActivityType, columns, estimates, mockMembers } from './project-data';
 
@@ -80,10 +82,26 @@ export const AttributeButton = ({
 };
 
 // --- INTERNAL COMPONENT: RICH TEXT EDITOR ---
-const RichTextEditor = ({ onSend }: { onSend: (html: string) => void }) => {
+// --- INTERNAL COMPONENT: RICH TEXT EDITOR ---
+const RichTextEditor = ({
+                          projectId,
+                          workItemId,
+                          onSend,
+                          onUploaded,
+                        }: {
+  projectId?: string;
+  workItemId?: string;
+  onSend: (html: string) => Promise<void> | void; // ✅ cho phép await
+  onUploaded?: () => void;
+}) => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const [isEmpty, setIsEmpty] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isEmpty, setIsEmpty] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  // ✅ file chờ gửi
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const exec = (command: string, value: string | undefined = undefined) => {
     document.execCommand(command, false, value);
@@ -92,58 +110,242 @@ const RichTextEditor = ({ onSend }: { onSend: (html: string) => void }) => {
 
   const handleInput = () => {
     if (!editorRef.current) return;
-    setIsEmpty(editorRef.current.innerText.trim() === "" && editorRef.current.innerHTML === "");
+    const textEmpty = editorRef.current.innerText.trim() === "";
+    const htmlEmpty = (editorRef.current.innerHTML || "").trim() === "";
+    setIsEmpty(textEmpty && htmlEmpty);
   };
 
-  const handleSend = () => {
-    if (editorRef.current && !isEmpty) {
-      onSend(editorRef.current.innerHTML);
-      editorRef.current.innerHTML = "";
-      setIsEmpty(true);
-    }
+  // 1) upload file to /api/files/upload (server của bạn yêu cầu projectId/workItemId)
+  const uploadFile = async (file: File) => {
+    if (!projectId || !workItemId) throw new Error("Thiếu projectId/workItemId");
+
+    const form = new FormData();
+    form.append("file", file);
+    form.append("projectId", projectId);
+    form.append("workItemId", workItemId);
+
+    const res = await fetch("/api/files/upload", {
+      method: "POST",
+      body: form,
+      credentials: "include",
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+    const json = await res.json();
+    return json?.data ?? json; // { _id, fileName, downloadUrl, ... }
+  };
+
+  const buildFileLinkHtml = (attachment: any, fallbackName: string) => {
+    const href =
+        attachment?.downloadUrl ||
+        (attachment?._id ? `/api/files/${attachment._id}/download` : "#");
+
+    const name = attachment?.fileName ?? attachment?.name ?? fallbackName;
+
+    return `
+      <div class="bg-white/[0.03] border border-white/5 p-3 rounded-lg">
+        <a class="text-indigo-400 underline" href="${href}" target="_blank" rel="noreferrer">
+          [File: ${name}]
+        </a>
+      </div>
+    `;
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      editorRef.current?.focus();
-      document.execCommand(
-          'insertHTML',
-          false,
-          `<br/><span class="text-indigo-400 underline cursor-pointer">[File: ${e.target.files[0].name}]</span>&nbsp;`
-      );
-      toast.success("Đã đính kèm file");
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // để chọn lại cùng file vẫn trigger onChange
+    e.target.value = "";
+
+    if (!projectId || !workItemId) {
+      toast.error("Thiếu projectId hoặc workItemId");
+      return;
+    }
+
+    // ✅ chỉ set pending, chưa upload
+    setPendingFile(file);
+    toast.success("Đã thêm file (bấm Gửi để upload)");
+  };
+
+  const clearEditor = () => {
+    if (editorRef.current) editorRef.current.innerHTML = "";
+    setIsEmpty(true);
+  };
+
+  const handleSend = async () => {
+    if (!editorRef.current) return;
+
+    // ✅ lấy html hiện tại
+    const html = editorRef.current.innerHTML;
+
+    // Nếu không có chữ và cũng không có file pending thì không gửi
+    const noText = editorRef.current.innerText.trim() === "";
+    if (noText && !pendingFile) return;
+
+    if (!projectId || !workItemId) {
+      toast.error("Thiếu projectId hoặc workItemId");
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      let finalHtml = html;
+
+      // ✅ nếu có file thì upload lúc bấm Gửi
+      if (pendingFile) {
+        const attachment = await uploadFile(pendingFile);
+
+        // append link file vào comment content
+        finalHtml =
+            (finalHtml || "") + "<br/>" + buildFileLinkHtml(attachment, pendingFile.name);
+
+        // refresh attachments list (panel)
+        onUploaded?.();
+      }
+
+      // ✅ tạo comment sau cùng (có link file nếu có)
+      await onSend(finalHtml);
+
+      // reset UI
+      setPendingFile(null);
+      clearEditor();
+
+      toast.success("Đã gửi");
+    } catch (err) {
+      console.error(err);
+      toast.error("Gửi thất bại (upload/comment)");
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
       <div className="rounded-xl border border-white/10 bg-[#141416] overflow-hidden focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all mt-4">
+        {/* ✅ pending file chip */}
+        {pendingFile && (
+            <div className="px-3 pt-3">
+              <div className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.03] border border-white/5 px-3 py-2">
+                <div className="min-w-0">
+                  <div className="text-xs text-zinc-200 truncate">
+                    {pendingFile.name}
+                    <span className="text-zinc-500"> (chưa gửi)</span>
+                  </div>
+                  <div className="text-[11px] text-zinc-500">
+                    {pendingFile.type || "unknown"} • {Math.round(pendingFile.size / 1024)} KB
+                  </div>
+                </div>
+
+                {/* ✅ nút xoá file pending */}
+                <button
+                    type="button"
+                    onClick={() => setPendingFile(null)}
+                    className="text-xs text-zinc-400 hover:text-white px-2 py-1 rounded hover:bg-white/10"
+                    title="Xóa file đính kèm"
+                    disabled={uploading}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+        )}
+
         <div className="relative p-3 min-h-[80px]">
-          {isEmpty && <div className="absolute top-3 left-3 text-zinc-600 text-sm pointer-events-none select-none">Thêm bình luận...</div>}
+          {isEmpty && (
+              <div className="absolute top-3 left-3 text-zinc-600 text-sm pointer-events-none select-none">
+                Thêm bình luận...
+              </div>
+          )}
           <div
               ref={editorRef}
               contentEditable
               onInput={handleInput}
               className="text-sm text-zinc-200 outline-none min-h-[60px] max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words prose prose-invert prose-sm max-w-none"
-              style={{ lineHeight: '1.5' }}
+              style={{ lineHeight: "1.5" }}
           />
         </div>
+
         <div className="flex items-center justify-between p-2 bg-[#1a1a1d] border-t border-white/5 select-none">
           <div className="flex items-center gap-0.5">
-            <Button onClick={() => exec('bold')} variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10"><Bold className="h-3.5 w-3.5" /></Button>
-            <Button onClick={() => exec('italic')} variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10"><Italic className="h-3.5 w-3.5" /></Button>
-            <Button onClick={() => exec('underline')} variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10"><Underline className="h-3.5 w-3.5" /></Button>
+            <Button
+                onClick={() => exec("bold")}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10"
+            >
+              <Bold className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+                onClick={() => exec("italic")}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10"
+            >
+              <Italic className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+                onClick={() => exec("underline")}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10"
+            >
+              <Underline className="h-3.5 w-3.5" />
+            </Button>
+
             <div className="w-[1px] h-4 bg-white/10 mx-1" />
-            <Button onClick={() => exec('insertUnorderedList')} variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10"><List className="h-3.5 w-3.5" /></Button>
+
+            <Button
+                onClick={() => exec("insertUnorderedList")}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10"
+            >
+              <List className="h-3.5 w-3.5" />
+            </Button>
+
             <div className="w-[1px] h-4 bg-white/10 mx-1" />
+
             <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
-            <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10"><ImageIcon className="h-3.5 w-3.5" /></Button>
-            <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10"><Paperclip className="h-3.5 w-3.5" /></Button>
+
+            <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10 disabled:opacity-50"
+                title="Đính kèm file"
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+            </Button>
+
+            <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-white/10 disabled:opacity-50"
+                title="Chèn ảnh/file"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+            </Button>
+
+            {uploading && <span className="text-xs text-zinc-500 ml-2">Đang gửi...</span>}
           </div>
-          <Button disabled={isEmpty} onClick={handleSend} size="sm" className="h-7 text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 gap-2">Gửi</Button>
+
+          <Button
+              disabled={(isEmpty && !pendingFile) || uploading}
+              onClick={handleSend}
+              size="sm"
+              className="h-7 text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 gap-2"
+          >
+            Gửi
+          </Button>
         </div>
       </div>
   );
 };
+
 
 // --- MAIN EXPORT: TASK DETAIL PANEL ---
 type TaskDetailPanelProps = {
@@ -157,7 +359,7 @@ type TaskDetailPanelProps = {
 
 export function TaskDetailPanel(props: TaskDetailPanelProps) {
   const { projectId, task, tasks, onClose, onUpdate, onCreateSubtask } = props;
-
+  console.log("DEBUG panel", projectId, task?._id, (task as any)?.taskId);
   // ✅ guard tasks để khỏi crash
   const subtasks = (tasks ?? []).filter((t) => t.parentId === task._id);
 
@@ -302,6 +504,35 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
       default: return <Circle className="h-3.5 w-3.5 text-zinc-500" />;
     }
   };
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteAttachment = async (fileId: string) => {
+    const ok = window.confirm("Bạn chắc chắn muốn xóa file này?");
+    if (!ok) return;
+
+    try {
+      setDeletingId(fileId);
+
+      // ✅ endpoint mặc định (bạn đổi nếu khác)
+      const res = await fetch(`/api/files/${fileId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `HTTP ${res.status}`);
+      }
+
+      toast.success("Đã xóa file");
+      await fetchAttachments(); // refresh list
+    } catch (e) {
+      console.error("deleteAttachment error:", e);
+      toast.error("Xóa file thất bại");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
 
   return (
       <div className="absolute inset-y-0 right-0 w-1/2 bg-[#0f0f11] border-l border-white/10 shadow-2xl z-[50] flex flex-col animate-in slide-in-from-right duration-300">
@@ -381,6 +612,18 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
                           >
                             Tải
                           </a>
+
+                          <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteAttachment(f._id)}
+                              disabled={deletingId === f._id}
+                              className="h-7 w-7 text-zinc-500 hover:text-red-400 hover:bg-red-500/10"
+                              title="Xóa file"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                   ))}
@@ -589,7 +832,12 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
             </div>
 
             <div className="mt-6">
-              <RichTextEditor onSend={handleSendComment} />
+              <RichTextEditor
+                  projectId={projectId}
+                  workItemId={task?._id}
+                  onSend={handleSendComment}
+                  onUploaded={fetchAttachments}
+              />
             </div>
           </div>
         </div>
